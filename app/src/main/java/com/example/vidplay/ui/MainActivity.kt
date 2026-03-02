@@ -97,13 +97,10 @@ class MainActivity : ComponentActivity() {
         super.onUserLeaveHint()
         if (_isOnVideoPlayerScreen.value) {
             Log.d(TAG, "User leaving app while on video player screen, entering PiP mode")
-            // Store current playing state before entering PIP
             currentVideoPlayerViewModel?.let { viewModel ->
                 pipHandler.updatePlayingState(viewModel.isPlaying.value)
             }
-            // Enter PIP mode regardless of video playing state
             pipHandler.enterPictureInPictureMode()
-            // Auto-play video when entering PIP mode
             currentVideoPlayerViewModel?.playVideo()
             pipHandler.updatePlayingState(true)
         } else {
@@ -113,17 +110,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        
-        // Important: order matters here - notify handlers about PIP change
+
         Log.d(TAG, "PiP mode changed: $isInPictureInPictureMode")
-        
-        // First notify the ViewModel to update its internal state
+
         notifyViewModelOfPipMode(isInPictureInPictureMode)
-        
-        // Then update the PipHandler (which will update its controls accordingly)
+
         pipHandler.setPipMode(isInPictureInPictureMode)
-        
-        // Log additional debug information
+
         Log.d(TAG, "PiP transition complete, UI should now reflect PiP state: $isInPictureInPictureMode")
     }
 

@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace 'com.example.vidplay'
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         applicationId "com.example.vidplay"
-        minSdk 21
-        targetSdk 34
+        minSdk 23
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 
@@ -29,10 +29,10 @@ android {
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = "17"
     }
     buildFeatures {
         compose true
@@ -77,6 +77,8 @@ dependencies {
     
     // Navigation Compose
     implementation libs.androidx.navigation.compose
+    // Coil for image loading in Compose
+    implementation 'io.coil-kt:coil-compose:2.4.0'
     
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit.v115

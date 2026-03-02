@@ -27,9 +27,6 @@ fun MainScreen(navController: NavController) {
                 Button(onClick = { navController.navigate("page1") }) {
                     Text("Video")
                 }
-                Button(onClick = { navController.navigate("page2") }) {
-                    Text("Audio")
-                }
             }
         }
     }

@@ -19,7 +19,7 @@ import com.example.vidplay.utils.PermissionUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.example.vidplay.pip.PipHandler
+import com.example.vidplay.presentation.pip.PipHandler
 import androidx.media3.common.util.UnstableApi
 import com.example.vidplay.viewmodels.VideoPlayerViewModel
 

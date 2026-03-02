@@ -30,7 +30,7 @@
     import androidx.lifecycle.viewmodel.compose.viewModel
     import androidx.media3.ui.PlayerView
     import androidx.navigation.NavController
-    import com.example.vidplay.pip.PipHandler
+    import com.example.vidplay.presentation.pip.PipHandler
     import com.example.vidplay.viewmodels.VideoPlayerViewModel
     import com.example.vidplay.viewmodels.VideoPlayerViewModelFactory
     import kotlinx.coroutines.CoroutineScope

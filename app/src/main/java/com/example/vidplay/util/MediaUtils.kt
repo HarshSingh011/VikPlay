@@ -4,7 +4,7 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.os.Build
 import android.provider.MediaStore
-import com.example.vidplay.models.Media
+import com.example.vidplay.domain.model.Media
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

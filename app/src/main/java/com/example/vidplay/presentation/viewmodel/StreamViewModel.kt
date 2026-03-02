@@ -1,0 +1,104 @@
+package com.example.vidplay.presentation.viewmodel
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.vidplay.data.repository.StreamRepositoryImpl
+import com.example.vidplay.data.source.remote.RetrofitClient
+import com.example.vidplay.domain.model.Stream
+import com.example.vidplay.domain.usecase.GetAllStreamsUseCase
+import com.example.vidplay.domain.usecase.GetMyStreamsUseCase
+import com.example.vidplay.presentation.state.StreamUiState
+import com.example.vidplay.util.PreferenceHelper
+import com.example.vidplay.util.Resource
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+/**
+ * ViewModel for stream-listing screens.
+ *
+ * Uses [AndroidViewModel] so it can access [PreferenceHelper] to read the
+ * saved token without passing Context through the UI.
+ *
+ * Dependency graph is constructed here (manual DI).
+ * Swap these constructors for injected interfaces once Hilt/Dagger is added.
+ */
+class StreamViewModel(application: Application) : AndroidViewModel(application) {
+
+    // ------------------------------------------------------------------ //
+    // Manual DI wiring (data → domain → viewmodel)
+    // ------------------------------------------------------------------ //
+    private val prefHelper = PreferenceHelper(application)
+
+    private val repository = StreamRepositoryImpl(RetrofitClient.streamApiService)
+
+    private val getAllStreamsUseCase = GetAllStreamsUseCase(repository)
+    private val getMyStreamsUseCase  = GetMyStreamsUseCase(repository)
+
+    // ------------------------------------------------------------------ //
+    // State exposed to the UI
+    // ------------------------------------------------------------------ //
+
+    /** All-streams tab state */
+    private val _allStreamsState = MutableStateFlow<StreamUiState>(StreamUiState.Loading)
+    val allStreamsState: StateFlow<StreamUiState> = _allStreamsState.asStateFlow()
+
+    /** My-streams tab state */
+    private val _myStreamsState = MutableStateFlow<StreamUiState>(StreamUiState.Loading)
+    val myStreamsState: StateFlow<StreamUiState> = _myStreamsState.asStateFlow()
+
+    // ------------------------------------------------------------------ //
+    // Search query stored in the ViewModel so it survives recomposition
+    // ------------------------------------------------------------------ //
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    fun onSearchQueryChanged(query: String) {
+        _searchQuery.value = query
+    }
+
+    // ------------------------------------------------------------------ //
+    // Actions
+    // ------------------------------------------------------------------ //
+
+    init {
+        fetchAllStreams()
+        fetchMyStreams()
+    }
+
+    fun fetchAllStreams() {
+        viewModelScope.launch {
+            _allStreamsState.value = StreamUiState.Loading
+            val token = prefHelper.token
+            when (val result = getAllStreamsUseCase(token)) {
+                is Resource.Success -> _allStreamsState.value = StreamUiState.Success(result.data)
+                is Resource.Error   -> _allStreamsState.value = StreamUiState.Error(result.message)
+                is Resource.Loading -> { /* handled by initial state */ }
+            }
+        }
+    }
+
+    fun fetchMyStreams() {
+        viewModelScope.launch {
+            _myStreamsState.value = StreamUiState.Loading
+            val token = prefHelper.token
+            when (val result = getMyStreamsUseCase(token)) {
+                is Resource.Success -> _myStreamsState.value = StreamUiState.Success(result.data)
+                is Resource.Error   -> _myStreamsState.value = StreamUiState.Error(result.message)
+                is Resource.Loading -> { /* handled by initial state */ }
+            }
+        }
+    }
+
+    /** Convenience: filter a list of streams by the current search query. */
+    fun filterStreams(streams: List<Stream>): List<Stream> {
+        val q = _searchQuery.value.trim()
+        return if (q.isBlank()) streams
+        else streams.filter {
+            it.title.contains(q, ignoreCase = true) ||
+            it.description.contains(q, ignoreCase = true)
+        }
+    }
+}

@@ -1,4 +1,4 @@
-package com.example.vidplay.models
+package com.example.vidplay.domain.model
 
 import android.net.Uri
 

@@ -22,12 +22,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun TokenTakenPageScreen() {
 	var text by remember { mutableStateOf("") }
+
+	val context = LocalContext.current
 
 	Column(
 		modifier = Modifier
@@ -54,7 +58,13 @@ fun TokenTakenPageScreen() {
 		Spacer(modifier = Modifier.height(16.dp))
 
 		Button(
-			onClick = { /* handle click */ },
+			onClick = {
+				val token = text.trim()
+				if (token.isNotEmpty()) {
+					val prefs = context.getSharedPreferences("vidplay_prefs", Context.MODE_PRIVATE)
+					prefs.edit().putString("saved_token", token).apply()
+				}
+			},
 			modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight(),

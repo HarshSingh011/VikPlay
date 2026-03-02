@@ -12,7 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.media3.common.util.UnstableApi
-import com.example.vidplay.pip.PipHandler
+import com.example.vidplay.presentation.pip.PipHandler
 import com.example.vidplay.ui.MainActivity
 import com.example.vidplay.ui.MainScreen
 import com.example.vidplay.ui.VideoSection.Page1Screen

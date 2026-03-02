@@ -1,4 +1,4 @@
-package com.example.vidplay.pip
+package com.example.vidplay.presentation.pip
 
 import android.annotation.SuppressLint
 import android.app.Activity

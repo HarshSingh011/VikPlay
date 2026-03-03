@@ -1,5 +1,6 @@
 package com.example.vidplay.data.source.remote
 
+import com.example.vidplay.BuildConfig
 import com.example.vidplay.util.Constants
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -9,19 +10,26 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Singleton that builds and exposes the Retrofit instance.
- * Swap [BASE_URL] in [Constants] to point at a different environment.
+ * Swap `Constants.BASE_URL` to point at a different environment.
  */
 object RetrofitClient {
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
+        level = if (BuildConfig.IS_DEBUG) HttpLoggingInterceptor.Level.BODY
+                else HttpLoggingInterceptor.Level.NONE
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
+    val okHttpBuilder = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+
+    init {
+        if (BuildConfig.IS_DEBUG) {
+            okHttpBuilder.addInterceptor(loggingInterceptor)
+        }
+    }
+
+    private val okHttpClient = okHttpBuilder.build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(Constants.BASE_URL)

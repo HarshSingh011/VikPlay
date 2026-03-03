@@ -5,9 +5,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vidplay.data.repository.StreamRepositoryImpl
 import com.example.vidplay.data.source.remote.RetrofitClient
+import com.example.vidplay.domain.model.MyStream
 import com.example.vidplay.domain.model.Stream
 import com.example.vidplay.domain.usecase.GetAllStreamsUseCase
 import com.example.vidplay.domain.usecase.GetMyStreamsUseCase
+import com.example.vidplay.domain.usecase.SearchStreamsUseCase
+import com.example.vidplay.presentation.state.MyStreamUiState
+import com.example.vidplay.presentation.state.SearchUiState
 import com.example.vidplay.presentation.state.StreamUiState
 import com.example.vidplay.util.PreferenceHelper
 import com.example.vidplay.util.Resource
@@ -34,8 +38,9 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
 
     private val repository = StreamRepositoryImpl(RetrofitClient.streamApiService)
 
-    private val getAllStreamsUseCase = GetAllStreamsUseCase(repository)
-    private val getMyStreamsUseCase  = GetMyStreamsUseCase(repository)
+    private val getAllStreamsUseCase  = GetAllStreamsUseCase(repository)
+    private val getMyStreamsUseCase   = GetMyStreamsUseCase(repository)
+    private val searchStreamsUseCase  = SearchStreamsUseCase(repository)
 
     // ------------------------------------------------------------------ //
     // State exposed to the UI
@@ -45,9 +50,13 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     private val _allStreamsState = MutableStateFlow<StreamUiState>(StreamUiState.Loading)
     val allStreamsState: StateFlow<StreamUiState> = _allStreamsState.asStateFlow()
 
-    /** My-streams tab state */
-    private val _myStreamsState = MutableStateFlow<StreamUiState>(StreamUiState.Loading)
-    val myStreamsState: StateFlow<StreamUiState> = _myStreamsState.asStateFlow()
+    /** My-streams (history) tab state */
+    private val _myStreamsState = MutableStateFlow<MyStreamUiState>(MyStreamUiState.Loading)
+    val myStreamsState: StateFlow<MyStreamUiState> = _myStreamsState.asStateFlow()
+
+    /** Search results state */
+    private val _searchState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
+    val searchState: StateFlow<SearchUiState> = _searchState.asStateFlow()
 
     // ------------------------------------------------------------------ //
     // Search query stored in the ViewModel so it survives recomposition
@@ -57,6 +66,8 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
+        // Clear results when user clears the text field
+        if (query.isBlank()) _searchState.value = SearchUiState.Idle
     }
 
     // ------------------------------------------------------------------ //
@@ -68,7 +79,33 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         fetchMyStreams()
     }
 
-    fun fetchAllStreams() {
+    /**
+     * Call the search API with current query.
+     * Results replace whatever is displayed in the active tab.
+     */
+    fun searchStreams() {
+        val query = _searchQuery.value.trim()
+        if (query.isBlank()) return
+        viewModelScope.launch {
+            _searchState.value = SearchUiState.Loading
+            val token = prefHelper.token
+            when (val result = searchStreamsUseCase(token, query)) {
+                is Resource.Success -> {
+                    if (result.data.isEmpty()) _searchState.value = SearchUiState.Empty
+                    else _searchState.value = SearchUiState.Success(result.data)
+                }
+                is Resource.Error   -> _searchState.value = SearchUiState.Error(result.message)
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
+    /** Called when user switches tab — clears search and reloads the tab's own data. */
+    fun onTabSelected(tab: Int) {
+        _searchQuery.value = ""
+        _searchState.value = SearchUiState.Idle
+        if (tab == 0) fetchAllStreams() else fetchMyStreams()
+    }
         viewModelScope.launch {
             _allStreamsState.value = StreamUiState.Loading
             val token = prefHelper.token
@@ -82,18 +119,28 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
 
     fun fetchMyStreams() {
         viewModelScope.launch {
-            _myStreamsState.value = StreamUiState.Loading
+            _myStreamsState.value = MyStreamUiState.Loading
             val token = prefHelper.token
             when (val result = getMyStreamsUseCase(token)) {
-                is Resource.Success -> _myStreamsState.value = StreamUiState.Success(result.data)
-                is Resource.Error   -> _myStreamsState.value = StreamUiState.Error(result.message)
+                is Resource.Success -> _myStreamsState.value = MyStreamUiState.Success(result.data)
+                is Resource.Error   -> _myStreamsState.value = MyStreamUiState.Error(result.message)
                 is Resource.Loading -> { /* handled by initial state */ }
             }
         }
     }
 
-    /** Convenience: filter a list of streams by the current search query. */
+    /** Convenience: filter live streams by the current search query. */
     fun filterStreams(streams: List<Stream>): List<Stream> {
+        val q = _searchQuery.value.trim()
+        return if (q.isBlank()) streams
+        else streams.filter {
+            it.title.contains(q, ignoreCase = true) ||
+            it.description.contains(q, ignoreCase = true)
+        }
+    }
+
+    /** Convenience: filter history streams by the current search query. */
+    fun filterMyStreams(streams: List<MyStream>): List<MyStream> {
         val q = _searchQuery.value.trim()
         return if (q.isBlank()) streams
         else streams.filter {

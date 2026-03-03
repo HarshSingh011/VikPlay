@@ -10,6 +10,6 @@ data class Stream(
     val description: String,
     val userId: Int,
     val viewerCount: Int,
-    val thumbnailUrl: String,
+    val thumbnailUrl: String?,   // may be null when server hasn't set a thumbnail
     val startedAt: String
 )

@@ -23,12 +23,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import android.content.Context
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.example.vidplay.Navigation.Routes
+import com.example.vidplay.util.PreferenceHelper
 
 @Composable
-fun TokenTakenPageScreen() {
+fun TokenTakenPageScreen(navController: NavController = rememberNavController()) {
 	var text by remember { mutableStateOf("") }
 
 	val context = LocalContext.current
@@ -61,8 +64,11 @@ fun TokenTakenPageScreen() {
 			onClick = {
 				val token = text.trim()
 				if (token.isNotEmpty()) {
-					val prefs = context.getSharedPreferences("vidplay_prefs", Context.MODE_PRIVATE)
-					prefs.edit().putString("saved_token", token).apply()
+					PreferenceHelper(context).token = token
+					navController.navigate(Routes.STREAMING) {
+						// Clear the token page from back-stack so Back doesn't return to it
+						popUpTo(Routes.TOKEN_PAGE) { inclusive = true }
+					}
 				}
 			},
 			modifier = Modifier
@@ -82,6 +88,6 @@ fun TokenTakenPageScreen() {
 @Preview(showBackground = true)
 @Composable
 fun TokenTakenPagePreview() {
-	TokenTakenPageScreen()
+	TokenTakenPageScreen(navController = rememberNavController())
 }
 

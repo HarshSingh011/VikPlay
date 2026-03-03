@@ -12,11 +12,13 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.media3.common.util.UnstableApi
-import com.example.vidplay.pip.PipHandler
+import com.example.vidplay.presentation.pip.PipHandler
 import com.example.vidplay.ui.MainActivity
 import com.example.vidplay.ui.MainScreen
 import com.example.vidplay.ui.VideoSection.Page1Screen
 import com.example.vidplay.ui.VideoSection.VideoPlayerScreen
+import com.example.vidplay.ui.streaming.AllStreamShownScreen
+import com.example.vidplay.ui.streaming.TokenTakenPageScreen
 import com.example.vidplay.viewmodels.VideoPlayerViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -35,6 +37,12 @@ fun MyAppNavHost(
         }
         composable("page1") {
             Page1Screen(navController = navController)
+        }
+        composable(Routes.TOKEN_PAGE) {
+            TokenTakenPageScreen(navController = navController)
+        }
+        composable(Routes.STREAMING) {
+            AllStreamShownScreen(navController = navController)
         }
         composable(
             route = "videoPlayer/{videoUri}",

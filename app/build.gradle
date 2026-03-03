@@ -22,8 +22,13 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Expose a build-time boolean so code can check it without relying on IDE-generated sources.
+            buildConfigField "boolean", "IS_DEBUG", "true"
+        }
         release {
             minifyEnabled false
+            buildConfigField "boolean", "IS_DEBUG", "false"
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -79,7 +84,13 @@ dependencies {
     implementation libs.androidx.navigation.compose
     // Coil for image loading in Compose
     implementation 'io.coil-kt:coil-compose:2.4.0'
-    
+
+    // Retrofit + OkHttp (provides retrofit2.*, @GET, @Header, Response, HttpLoggingInterceptor)
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
+
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit.v115
     androidTestImplementation libs.androidx.espresso.core.v351
@@ -89,4 +100,4 @@ dependencies {
     androidTestImplementation libs.ui.test.junit4
     debugImplementation libs.ui.tooling
     debugImplementation libs.ui.test.manifest
-} 
+}

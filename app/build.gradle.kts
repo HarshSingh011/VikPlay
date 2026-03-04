@@ -31,12 +31,15 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs += "-Xopt-in=androidx.media3.common.util.UnstableApi"
+    kotlin {
+        compilerOptions {
+            jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
+            freeCompilerArgs.addAll("-Xopt-in=androidx.media3.common.util.UnstableApi")
+        }
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

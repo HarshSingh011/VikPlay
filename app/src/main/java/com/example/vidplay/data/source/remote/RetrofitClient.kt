@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 object RetrofitClient {
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = if (BuildConfig.IS_DEBUG) HttpLoggingInterceptor.Level.BODY
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
                 else HttpLoggingInterceptor.Level.NONE
     }
 
@@ -24,7 +24,7 @@ object RetrofitClient {
         .readTimeout(30, TimeUnit.SECONDS)
 
     init {
-        if (BuildConfig.IS_DEBUG) {
+        if (BuildConfig.DEBUG) {
             okHttpBuilder.addInterceptor(loggingInterceptor)
         }
     }

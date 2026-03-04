@@ -55,6 +55,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -157,7 +159,12 @@ fun AllStreamShownScreen(
                 label = { Text("Search streams") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search,
+                    keyboardType = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrect = false
+                ),
                 keyboardActions = KeyboardActions(
                     onSearch = {
                         keyboardController?.hide()
@@ -259,11 +266,33 @@ fun AllStreamShownScreen(
                                 }
                             }
                             is StreamUiState.Success -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(state.streams) { item -> StreamCard(item) }
+                                if (state.streams.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                imageVector = Icons.Default.LiveTv,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(64.dp),
+                                                tint = Color(0xFF9E9E9E)
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(
+                                                text = "No live streams at the moment",
+                                                color = Color(0xFF9E9E9E),
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        items(state.streams) { item -> StreamCard(item) }
+                                    }
                                 }
                             }
                         }
@@ -285,11 +314,31 @@ fun AllStreamShownScreen(
                                 }
                             }
                             is MyStreamUiState.Success -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(state.streams) { item -> MyStreamCard(item) }
+                                if (state.streams.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                imageVector = Icons.Default.VideoLibrary,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(64.dp),
+                                                tint = Color(0xFF9E9E9E)
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(
+                                                text = "No stream history yet",
+                                                color = Color(0xFF9E9E9E),
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    MyStreamShownScreen(
+                                        streams = state.streams,
+                                        query = searchQuery
+                                    )
                                 }
                             }
                         }

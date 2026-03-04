@@ -106,6 +106,8 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         _searchState.value = SearchUiState.Idle
         if (tab == 0) fetchAllStreams() else fetchMyStreams()
     }
+
+    fun fetchAllStreams() {
         viewModelScope.launch {
             _allStreamsState.value = StreamUiState.Loading
             val token = prefHelper.token

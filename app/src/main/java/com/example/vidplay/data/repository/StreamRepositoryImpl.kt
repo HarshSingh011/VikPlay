@@ -22,13 +22,13 @@ class StreamRepositoryImpl(
 ) : StreamRepository {
 
     override suspend fun getAllStreams(token: String): Resource<List<Stream>> =
-        safeApiCall { apiService.getAllStreams("Token $token") }
+        safeApiCall { apiService.getAllStreams("Bearer $token") }
 
     override suspend fun getMyStreams(token: String): Resource<List<MyStream>> =
-        safeMyStreamApiCall { apiService.getMyStreams("Token $token") }
+        safeMyStreamApiCall { apiService.getMyStreams("Bearer $token") }
 
     override suspend fun searchStreams(token: String, query: String): Resource<List<MyStream>> =
-        safeSearchApiCall { apiService.searchStreams("Token $token", query, liveOnly = true) }
+        safeSearchApiCall { apiService.searchStreams("Bearer $token", query, liveOnly = true) }
 
     // ---------------------------------------------------------------------------
     // Helpers

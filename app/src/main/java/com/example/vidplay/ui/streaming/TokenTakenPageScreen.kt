@@ -13,6 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,18 +49,34 @@ fun TokenTakenPageScreen(navController: NavController = rememberNavController())
 		horizontalAlignment = Alignment.CenterHorizontally
 	) {
 		val boxShape = RoundedCornerShape(8.dp)
+		val focusManager = LocalFocusManager.current
+		val keyboardController = LocalSoftwareKeyboardController.current
 
 		OutlinedTextField(
 			value = text,
 			onValueChange = { text = it },
-            shape = boxShape,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = (3 * 24).dp),
+			shape = boxShape,
+			modifier = Modifier
+				.fillMaxWidth()
+				.heightIn(min = (3 * 24).dp),
 			label = { Text("Enter token") },
 			singleLine = false,
 			minLines = 3,
-			maxLines = Int.MAX_VALUE,
+			maxLines = 3,
+			keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+			keyboardActions = KeyboardActions(
+				onDone = {
+					val token = text.trim()
+					if (token.isNotEmpty()) {
+						PreferenceHelper(context).token = token
+						focusManager.clearFocus()
+						keyboardController?.hide()
+						navController.navigate(Routes.STREAMING) {
+							popUpTo(Routes.TOKEN_PAGE) { inclusive = true }
+						}
+					}
+				}
+			)
 		)
 
 		Spacer(modifier = Modifier.height(16.dp))

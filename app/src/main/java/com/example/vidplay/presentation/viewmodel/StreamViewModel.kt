@@ -10,8 +10,10 @@ import com.example.vidplay.domain.model.Stream
 import com.example.vidplay.domain.usecase.GetAllStreamsUseCase
 import com.example.vidplay.domain.usecase.GetMyStreamsUseCase
 import com.example.vidplay.domain.usecase.SearchStreamsUseCase
+import com.example.vidplay.domain.usecase.StartStreamUseCase
 import com.example.vidplay.presentation.state.MyStreamUiState
 import com.example.vidplay.presentation.state.SearchUiState
+import com.example.vidplay.presentation.state.StartStreamUiState
 import com.example.vidplay.presentation.state.StreamUiState
 import com.example.vidplay.util.PreferenceHelper
 import com.example.vidplay.util.Resource
@@ -41,6 +43,7 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     private val getAllStreamsUseCase  = GetAllStreamsUseCase(repository)
     private val getMyStreamsUseCase   = GetMyStreamsUseCase(repository)
     private val searchStreamsUseCase  = SearchStreamsUseCase(repository)
+    private val startStreamUseCase    = StartStreamUseCase(repository)
 
     // ------------------------------------------------------------------ //
     // State exposed to the UI
@@ -57,6 +60,10 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     /** Search results state */
     private val _searchState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val searchState: StateFlow<SearchUiState> = _searchState.asStateFlow()
+
+    /** Start-stream state */
+    private val _startStreamState = MutableStateFlow<StartStreamUiState>(StartStreamUiState.Idle)
+    val startStreamState: StateFlow<StartStreamUiState> = _startStreamState.asStateFlow()
 
     // ------------------------------------------------------------------ //
     // Search query stored in the ViewModel so it survives recomposition
@@ -98,6 +105,24 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
                 is Resource.Loading -> {}
             }
         }
+    }
+
+    /** Start a new live stream via the API. */
+    fun startStream(title: String, description: String?, thumbnailUrl: String?) {
+        viewModelScope.launch {
+            _startStreamState.value = StartStreamUiState.Loading
+            val token = prefHelper.token
+            when (val result = startStreamUseCase(token, title, description, thumbnailUrl)) {
+                is Resource.Success -> _startStreamState.value = StartStreamUiState.Success(result.data)
+                is Resource.Error   -> _startStreamState.value = StartStreamUiState.Error(result.message)
+                is Resource.Loading -> {}
+            }
+        }
+    }
+
+    /** Reset start-stream state back to Idle (call when leaving LiveStreamingScreen). */
+    fun resetStartStreamState() {
+        _startStreamState.value = StartStreamUiState.Idle
     }
 
     /** Called when user switches tab — clears search and reloads the tab's own data. */

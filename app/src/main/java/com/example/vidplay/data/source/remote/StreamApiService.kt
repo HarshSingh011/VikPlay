@@ -1,11 +1,15 @@
 package com.example.vidplay.data.source.remote
 
+import com.example.vidplay.data.source.remote.dto.ActiveStreamDto
 import com.example.vidplay.data.source.remote.dto.MyStreamDto
 import com.example.vidplay.data.source.remote.dto.SearchStreamDto
+import com.example.vidplay.data.source.remote.dto.StartStreamRequest
 import com.example.vidplay.data.source.remote.dto.StreamDto
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.POST
 import retrofit2.http.Query
 
 /**
@@ -42,4 +46,14 @@ interface StreamApiService {
         @Query("q") query: String,
         @Query("live_only") liveOnly: Boolean = true
     ): Response<List<SearchStreamDto>>
+
+    /**
+     * POST streaming/streams/start
+     * Creates and starts a new live stream.
+     */
+    @POST("streaming/streams/start")
+    suspend fun startStream(
+        @Header("Authorization") token: String,
+        @Body body: StartStreamRequest
+    ): Response<ActiveStreamDto>
 }

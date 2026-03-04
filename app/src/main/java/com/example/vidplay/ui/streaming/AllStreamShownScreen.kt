@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.vidplay.presentation.state.StartStreamUiState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -101,11 +102,24 @@ fun AllStreamShownScreen(
     val myStreamsState  by viewModel.myStreamsState.collectAsState()
     val searchQuery    by viewModel.searchQuery.collectAsState()
     val searchState    by viewModel.searchState.collectAsState()
+    val startStreamState by viewModel.startStreamState.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
 
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    var showStartDialog by remember { mutableStateOf(false) }
+
+    // Navigate to live stream screen when stream starts successfully
+    LaunchedEffect(startStreamState) {
+        if (startStreamState is StartStreamUiState.Success) {
+            showStartDialog = false
+            navController.navigate(Routes.LIVE_STREAM)
+        } else if (startStreamState is StartStreamUiState.Error) {
+            Toast.makeText(context, (startStreamState as StartStreamUiState.Error).message, Toast.LENGTH_LONG).show()
+            viewModel.resetStartStreamState()
+        }
+    }
 
     // Show Toast when search returns empty
     LaunchedEffect(searchState) {
@@ -348,13 +362,25 @@ fun AllStreamShownScreen(
         }
 
         FloatingActionButton(
-                onClick = { /* TODO: handle add stream action */ },
+                onClick = { showStartDialog = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 80.dp, end = 16.dp),  // above bottom nav
                 shape = CircleShape
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add")
+            }
+            
+            if (showStartDialog) {
+                StartStreamDialog(
+                    onDismiss = { showStartDialog = false },
+                    isLoading = startStreamState is StartStreamUiState.Loading,
+                    onSubmit = { title, description, thumbnailUri ->
+                        // Only pass thumbnail if it's already a remote URL; local URIs can't be sent as-is
+                        val remoteUrl = if (thumbnailUri != null && thumbnailUri.startsWith("http")) thumbnailUri else null
+                        viewModel.startStream(title, description, remoteUrl)
+                    }
+                )
             }
         }
     }

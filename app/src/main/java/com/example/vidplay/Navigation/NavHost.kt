@@ -14,7 +14,10 @@ import com.example.vidplay.ui.MainScreen
 import com.example.vidplay.ui.VideoSection.Page1Screen
 import com.example.vidplay.ui.VideoSection.VideoPlayerScreen
 import com.example.vidplay.ui.streaming.AllStreamShownScreen
+import com.example.vidplay.ui.streaming.LiveStreamingScreen
 import com.example.vidplay.ui.streaming.TokenTakenPageScreen
+import com.example.vidplay.presentation.viewmodel.StreamViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -27,6 +30,10 @@ fun MyAppNavHost(
     pipHandler: PipHandler,
     onVideoPlayerViewModelCreated: (VideoPlayerViewModel) -> Unit = {}
 ) {
+    // One shared ViewModel instance scoped to the Activity — both AllStreamShownScreen
+    // and LiveStreamingScreen must read from the same state (startStreamState).
+    val streamViewModel: StreamViewModel = viewModel()
+
     NavHost(navController = navController, startDestination = "main") {
         composable("main") {
             MainScreen(navController = navController)
@@ -38,7 +45,10 @@ fun MyAppNavHost(
             TokenTakenPageScreen(navController = navController)
         }
         composable(Routes.STREAMING) {
-            AllStreamShownScreen(navController = navController)
+            AllStreamShownScreen(navController = navController, viewModel = streamViewModel)
+        }
+        composable(Routes.LIVE_STREAM) {
+            LiveStreamingScreen(navController = navController, viewModel = streamViewModel)
         }
         composable(
             route = "videoPlayer/{videoUri}",

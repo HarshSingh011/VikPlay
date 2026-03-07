@@ -16,6 +16,7 @@ import com.example.vidplay.ui.VideoSection.VideoPlayerScreen
 import com.example.vidplay.ui.streaming.AllStreamShownScreen
 import com.example.vidplay.ui.streaming.LiveStreamingScreen
 import com.example.vidplay.ui.streaming.TokenTakenPageScreen
+import com.example.vidplay.ui.streaming.ViewerStreamingScreen
 import com.example.vidplay.presentation.viewmodel.StreamViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
@@ -49,6 +50,24 @@ fun MyAppNavHost(
         }
         composable(Routes.LIVE_STREAM) {
             LiveStreamingScreen(navController = navController, viewModel = streamViewModel)
+        }
+        composable(
+            route = Routes.VIEW_STREAM,
+            arguments = listOf(
+                navArgument("streamCode")  { type = NavType.StringType },
+                navArgument("streamTitle") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val code  = backStackEntry.arguments?.getString("streamCode")  ?: ""
+            val title = URLDecoder.decode(
+                backStackEntry.arguments?.getString("streamTitle") ?: "",
+                StandardCharsets.UTF_8.toString()
+            )
+            ViewerStreamingScreen(
+                navController = navController,
+                streamCode    = code,
+                streamTitle   = title
+            )
         }
         composable(
             route = "videoPlayer/{videoUri}",

@@ -10,6 +10,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 /**
@@ -56,4 +57,14 @@ interface StreamApiService {
         @Header("Authorization") token: String,
         @Body body: StartStreamRequest
     ): Response<ActiveStreamDto>
+
+    /**
+     * POST streaming/streams/end/{stream_code}
+     * Ends an active live stream.
+     */
+    @POST("streaming/streams/end/{stream_code}")
+    suspend fun endStream(
+        @Header("Authorization") token: String,
+        @Path("stream_code") streamCode: String
+    ): Response<Unit>
 }

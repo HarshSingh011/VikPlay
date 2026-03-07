@@ -66,6 +66,8 @@ import androidx.navigation.compose.rememberNavController
 import android.widget.Toast
 import coil.compose.rememberAsyncImagePainter
 import com.example.vidplay.Navigation.Routes
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import com.example.vidplay.domain.model.MyStream
 import com.example.vidplay.domain.model.Stream
 import com.example.vidplay.presentation.state.MyStreamUiState
@@ -305,7 +307,20 @@ fun AllStreamShownScreen(
                                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        items(state.streams) { item -> StreamCard(item) }
+                                        items(state.streams) { item ->
+                                            StreamCard(
+                                                item = item,
+                                                onClick = {
+                                                    val encodedTitle = URLEncoder.encode(
+                                                        item.title,
+                                                        StandardCharsets.UTF_8.toString()
+                                                    )
+                                                    navController.navigate(
+                                                        "viewStream/${item.streamCode}?streamTitle=$encodedTitle"
+                                                    )
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -475,9 +490,11 @@ fun MyStreamCard(item: MyStream) {
 }
 
 @Composable
-fun StreamCard(item: Stream) {
+fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.cardColors()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {

@@ -125,6 +125,19 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         _startStreamState.value = StartStreamUiState.Idle
     }
 
+    /**
+     * End an active live stream via the API.
+     * Fire-and-forget: called when the broadcaster leaves LiveStreamingScreen.
+     * Errors are silently ignored so navigation is never blocked.
+     */
+    fun endStream(streamCode: String) {
+        viewModelScope.launch {
+            try {
+                repository.endStream(prefHelper.token, streamCode)
+            } catch (_: Exception) {}
+        }
+    }
+
     /** Called when user switches tab — clears search and reloads the tab's own data. */
     fun onTabSelected(tab: Int) {
         _searchQuery.value = ""

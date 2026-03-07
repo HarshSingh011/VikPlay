@@ -1,6 +1,7 @@
 package com.example.vidplay.ui.streaming
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,6 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,10 +46,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.vidplay.data.webrtc.WebRtcBroadcastManager
+import com.example.vidplay.data.webrtc.StreamingSession
 import com.example.vidplay.presentation.state.StartStreamUiState
 import com.example.vidplay.presentation.viewmodel.StreamViewModel
-import com.example.vidplay.util.PreferenceHelper
 import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
 
@@ -60,14 +61,14 @@ fun LiveStreamingScreen(
     val stream = (startStreamState as? StartStreamUiState.Success)?.stream
 
     val context = LocalContext.current
-    val token   = remember { PreferenceHelper(context).token }
 
-    // ── Permission state (CAMERA + RECORD_AUDIO both required) ───────────────
+    // ── Permission state ──────────────────────────────────────────────────────
     fun hasPermission(perm: String) =
         ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
 
     var hasCameraPermission by remember { mutableStateOf(hasPermission(Manifest.permission.CAMERA)) }
     var hasAudioPermission  by remember { mutableStateOf(hasPermission(Manifest.permission.RECORD_AUDIO)) }
+    val hasPermissions = hasCameraPermission && hasAudioPermission
 
     val permLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -76,19 +77,50 @@ fun LiveStreamingScreen(
         hasAudioPermission  = results[Manifest.permission.RECORD_AUDIO] == true
     }
 
-    // ── WebRTC broadcaster ────────────────────────────────────────────────────
-    // The manager is created once per stream session. start() is synchronous
-    // for media-track setup; the WebSocket connection runs on a background thread.
-    val hasPermissions = hasCameraPermission && hasAudioPermission
-    val manager = remember(stream?.streamCode, hasPermissions) {
-        if (stream != null && hasPermissions) {
-            WebRtcBroadcastManager(context, stream.streamCode, stream.streamKey, token)
-                .also { it.start() }
-        } else null
+    // Request permissions on first entry
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission || !hasAudioPermission) {
+            permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
+        }
     }
 
-    DisposableEffect(manager) {
-        onDispose { manager?.release() }
+    // ── Start foreground service (idempotent) ─────────────────────────────────
+    // Once both stream info and permissions are available, start the service.
+    // The service creates WebRtcBroadcastManager and puts it in StreamingSession.
+    var serviceStarted by remember { mutableStateOf(false) }
+    LaunchedEffect(stream?.streamCode, hasPermissions) {
+        if (stream != null && hasPermissions && !serviceStarted) {
+            val intent = StreamingForegroundService.buildStartIntent(
+                context, stream.streamCode, stream.streamKey, stream.title
+            )
+            context.startForegroundService(intent)
+            serviceStarted = true
+        }
+    }
+
+    // ── WebRTC manager from the live service ──────────────────────────────────
+    val manager = StreamingSession.manager
+
+    // ── Prevent double end-stream calls when Stop button is used ─────────────
+    var streamEndedExplicitly by remember { mutableStateOf(false) }
+
+    fun stopStream() {
+        if (streamEndedExplicitly) return
+        streamEndedExplicitly = true
+        stream?.let { viewModel.endStream(it.streamCode) }
+        context.stopService(Intent(context, StreamingForegroundService::class.java))
+        viewModel.resetStartStreamState()
+    }
+
+    // Called when back-navigation removes this screen from the backstack
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!streamEndedExplicitly) {
+                stream?.let { viewModel.endStream(it.streamCode) }
+                context.stopService(Intent(context, StreamingForegroundService::class.java))
+                viewModel.resetStartStreamState()
+            }
+        }
     }
 
     // ── UI ────────────────────────────────────────────────────────────────────
@@ -103,7 +135,6 @@ fun LiveStreamingScreen(
         ) {
             when {
                 !hasCameraPermission || !hasAudioPermission -> {
-                    // No permissions yet → show request button
                     Column(
                         modifier = Modifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -126,7 +157,6 @@ fun LiveStreamingScreen(
                     }
                 }
                 manager != null -> {
-                    // Render the local WebRTC video track for preview
                     AndroidView(
                         factory = { ctx ->
                             SurfaceViewRenderer(ctx).apply {
@@ -142,7 +172,6 @@ fun LiveStreamingScreen(
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-
                     // LIVE badge overlay
                     Box(
                         modifier = Modifier
@@ -155,9 +184,8 @@ fun LiveStreamingScreen(
                     }
                 }
                 else -> {
-                    // stream is null (shouldn't happen if navigation is correct)
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Preparing stream…", color = Color.White)
+                        Text("Starting stream…", color = Color.White)
                     }
                 }
             }
@@ -180,7 +208,6 @@ fun LiveStreamingScreen(
                     Text(stream.description, fontSize = 14.sp, color = Color(0xFF757575))
                 }
 
-                // Stream code
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Stream Code: ", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     Box(
@@ -202,7 +229,7 @@ fun LiveStreamingScreen(
 
             Button(
                 onClick = {
-                    viewModel.resetStartStreamState()
+                    stopStream()
                     navController.popBackStack()
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -216,15 +243,5 @@ fun LiveStreamingScreen(
                 Text("Stop Streaming", fontWeight = FontWeight.Bold)
             }
         }
-    }
-
-    // Request permissions on first entry if not already granted
-    DisposableEffect(Unit) {
-        if (!hasCameraPermission || !hasAudioPermission) {
-            permLauncher.launch(
-                arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
-            )
-        }
-        onDispose {}
     }
 }

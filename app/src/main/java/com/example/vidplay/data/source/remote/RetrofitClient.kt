@@ -20,8 +20,8 @@ object RetrofitClient {
     }
 
     val okHttpBuilder = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(90, TimeUnit.SECONDS)
+        .readTimeout(90, TimeUnit.SECONDS)
 
     init {
         if (BuildConfig.DEBUG) {

@@ -56,6 +56,16 @@ class StreamRepositoryImpl(
         }
     }
 
+    override suspend fun endStream(token: String, streamCode: String): Resource<Unit> {
+        return try {
+            val response = apiService.endStream("Bearer $token", streamCode)
+            if (response.isSuccessful) Resource.Success(Unit)
+            else Resource.Error("API error ${response.code()}: ${response.message()}")
+        } catch (e: Exception) {
+            Resource.Error(e.localizedMessage ?: "Unexpected error")
+        }
+    }
+
     // ---------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------

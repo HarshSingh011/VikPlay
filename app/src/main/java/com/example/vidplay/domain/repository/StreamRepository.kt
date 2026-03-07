@@ -27,4 +27,7 @@ interface StreamRepository {
         description: String?,
         thumbnailUrl: String?
     ): Resource<ActiveStream>
+
+    /** End an active live stream. */
+    suspend fun endStream(token: String, streamCode: String): Resource<Unit>
 }

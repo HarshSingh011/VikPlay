@@ -11,6 +11,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.vidplay.presentation.pip.PipHandler
 import com.example.vidplay.ui.MainScreen
+import com.example.vidplay.ui.VideoSection.LocalStorageScreen
 import com.example.vidplay.ui.VideoSection.Page1Screen
 import com.example.vidplay.ui.VideoSection.VideoPlayerScreen
 import com.example.vidplay.ui.streaming.AllStreamShownScreen
@@ -23,6 +24,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.LiveTv
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.runtime.getValue
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
 
 
 @Composable
@@ -36,61 +52,105 @@ fun MyAppNavHost(
     // and LiveStreamingScreen must read from the same state (startStreamState).
     val streamViewModel: StreamViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = "main") {
-        composable("main") {
-            MainScreen(navController = navController)
-        }
-        composable("page1") {
-            Page1Screen(navController = navController)
-        }
-        composable(Routes.TOKEN_PAGE) {
-            TokenTakenPageScreen(navController = navController)
-        }
-        composable(Routes.STREAMING) {
-            AllStreamShownScreen(navController = navController, viewModel = streamViewModel)
-        }
-        composable(Routes.LIVE_STREAM) {
-            LiveStreamingScreen(navController = navController, viewModel = streamViewModel)
-        }
-        composable(Routes.CALL) {
-            CallScreen(navController = navController)
-        }
-        composable(
-            route = Routes.VIEW_STREAM,
-            arguments = listOf(
-                navArgument("streamCode")  { type = NavType.StringType },
-                navArgument("streamTitle") { type = NavType.StringType; defaultValue = "" }
-            )
-        ) { backStackEntry ->
-            val code  = backStackEntry.arguments?.getString("streamCode")  ?: ""
-            val title = URLDecoder.decode(
-                backStackEntry.arguments?.getString("streamTitle") ?: "",
-                StandardCharsets.UTF_8.toString()
-            )
-            ViewerStreamingScreen(
-                navController = navController,
-                streamCode    = code,
-                streamTitle   = title
-            )
-        }
-        composable(
-            route = "videoPlayer/{videoUri}",
-            arguments = listOf(
-                navArgument("videoUri") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-            val encodedUri = backStackEntry.arguments?.getString("videoUri") ?: ""
-            val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
+    val currentBackStack by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStack?.destination?.route ?: ""
 
-            VideoPlayerScreen(
-                navController = navController,
-                videoUri = decodedUri,
-                pipHandler = pipHandler,
-                onPlayingStateChanged = onVideoPlayingStateChanged,
-                onVideoPlayerViewModelCreated = onVideoPlayerViewModelCreated
-            )
+    Scaffold(
+        bottomBar = {
+            NavigationBar {
+                // Video tab
+                NavigationBarItem(
+                    selected = currentRoute == Routes.LOCAL_STORAGE || currentRoute == Routes.PAGE1 || currentRoute.startsWith("videoPlayer"),
+                    onClick = {
+                        navController.navigate(Routes.LOCAL_STORAGE) { launchSingleTop = true }
+                    },
+                    icon = { Icon(Icons.Default.Videocam, contentDescription = "Video") },
+                    label = { Text("Video") }
+                )
+
+                // Stream tab
+                NavigationBarItem(
+                    selected = currentRoute == Routes.STREAMING,
+                    onClick = {
+                        navController.navigate(Routes.STREAMING) { launchSingleTop = true }
+                    },
+                    icon = { Icon(Icons.Default.LiveTv, contentDescription = "Stream") },
+                    label = { Text("Stream") }
+                )
+
+                // Call tab
+                NavigationBarItem(
+                    selected = currentRoute == Routes.CALL,
+                    onClick = {
+                        navController.navigate(Routes.CALL) { launchSingleTop = true }
+                    },
+                    icon = { Icon(Icons.Default.Call, contentDescription = "Call") },
+                    label = { Text("Call") }
+                )
+            }
+        }
+    ) { innerPadding ->
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            NavHost(navController = navController, startDestination = Routes.LOCAL_STORAGE) {
+                composable("main") {
+                    MainScreen(navController = navController)
+                }
+                composable(Routes.LOCAL_STORAGE) {
+                    LocalStorageScreen(navController = navController)
+                }
+                composable("page1") {
+                    Page1Screen(navController = navController)
+                }
+                composable(Routes.TOKEN_PAGE) {
+                    TokenTakenPageScreen(navController = navController)
+                }
+                composable(Routes.STREAMING) {
+                    AllStreamShownScreen(navController = navController, viewModel = streamViewModel)
+                }
+                composable(Routes.LIVE_STREAM) {
+                    LiveStreamingScreen(navController = navController, viewModel = streamViewModel)
+                }
+                composable(Routes.CALL) {
+                    CallScreen(navController = navController)
+                }
+                composable(
+                    route = Routes.VIEW_STREAM,
+                    arguments = listOf(
+                        navArgument("streamCode")  { type = NavType.StringType },
+                        navArgument("streamTitle") { type = NavType.StringType; defaultValue = "" }
+                    )
+                ) { backStackEntry ->
+                    val code  = backStackEntry.arguments?.getString("streamCode")  ?: ""
+                    val title = URLDecoder.decode(
+                        backStackEntry.arguments?.getString("streamTitle") ?: "",
+                        StandardCharsets.UTF_8.toString()
+                    )
+                    ViewerStreamingScreen(
+                        navController = navController,
+                        streamCode    = code,
+                        streamTitle   = title
+                    )
+                }
+                composable(
+                    route = "videoPlayer/{videoUri}",
+                    arguments = listOf(
+                        navArgument("videoUri") {
+                            type = NavType.StringType
+                        }
+                    )
+                ) { backStackEntry ->
+                    val encodedUri = backStackEntry.arguments?.getString("videoUri") ?: ""
+                    val decodedUri = URLDecoder.decode(encodedUri, StandardCharsets.UTF_8.toString())
+
+                    VideoPlayerScreen(
+                        navController = navController,
+                        videoUri = decodedUri,
+                        pipHandler = pipHandler,
+                        onPlayingStateChanged = onVideoPlayingStateChanged,
+                        onVideoPlayerViewModelCreated = onVideoPlayerViewModelCreated
+                    )
+                }
+            }
         }
     }
 }

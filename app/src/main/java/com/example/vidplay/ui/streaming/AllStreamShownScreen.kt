@@ -34,8 +34,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -130,34 +128,7 @@ fun AllStreamShownScreen(
         }
     }
 
-    // Bottom nav items for switching between app sections
-    data class NavItem(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val route: String)
-    val bottomNavItems = listOf(
-        NavItem("Videos",    Icons.Default.VideoLibrary, Routes.PAGE1),
-        NavItem("Streaming", Icons.Default.LiveTv,        Routes.STREAMING)
-    )
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                bottomNavItems.forEachIndexed { index, item ->
-                    val isSelected = item.route == Routes.STREAMING
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            if (!isSelected) {
-                                navController.navigate(item.route) {
-                                    popUpTo(Routes.STREAMING) { inclusive = true }
-                                }
-                            }
-                        },
-                        icon  = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) }
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 0.dp)) {
                 val selectedColor   = Color(0xFF2196F3)

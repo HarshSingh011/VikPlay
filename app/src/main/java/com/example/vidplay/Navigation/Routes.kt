@@ -9,4 +9,5 @@ object Routes {
     const val LIVE_STREAM  = "liveStream"
     /** Viewer screen — args: streamCode (path), streamTitle (query, URL-encoded) */
     const val VIEW_STREAM  = "viewStream/{streamCode}?streamTitle={streamTitle}"
+    const val CALL         = "call"
 }

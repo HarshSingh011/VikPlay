@@ -17,6 +17,7 @@ import com.example.vidplay.ui.streaming.AllStreamShownScreen
 import com.example.vidplay.ui.streaming.LiveStreamingScreen
 import com.example.vidplay.ui.streaming.TokenTakenPageScreen
 import com.example.vidplay.ui.streaming.ViewerStreamingScreen
+import com.example.vidplay.ui.CallSection.CallScreen
 import com.example.vidplay.presentation.viewmodel.StreamViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
@@ -50,6 +51,9 @@ fun MyAppNavHost(
         }
         composable(Routes.LIVE_STREAM) {
             LiveStreamingScreen(navController = navController, viewModel = streamViewModel)
+        }
+        composable(Routes.CALL) {
+            CallScreen(navController = navController)
         }
         composable(
             route = Routes.VIEW_STREAM,

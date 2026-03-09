@@ -8,9 +8,9 @@ import android.content.Intent
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.MyAppNavHost
@@ -20,8 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.vidplay.presentation.pip.PipHandler
-import androidx.media3.common.util.UnstableApi
-import com.example.vidplay.viewmodels.VideoPlayerViewModel
+import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
 
 class MainActivity : ComponentActivity() {
     private val TAG = "MainActivity"
@@ -42,6 +41,8 @@ class MainActivity : ComponentActivity() {
                 notifyViewModelOfPipMode(isInPipMode)
             }
         }
+
+        enableEdgeToEdge()
 
         val requestPermissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
             results.forEach { (permission, isGranted) ->

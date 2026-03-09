@@ -1,5 +1,6 @@
 package com.example.vidplay.domain.repository
 
+import com.example.vidplay.domain.model.ActiveStream
 import com.example.vidplay.domain.model.MyStream
 import com.example.vidplay.domain.model.Stream
 import com.example.vidplay.util.Resource
@@ -18,4 +19,15 @@ interface StreamRepository {
 
     /** Search streams by keyword; live_only=true by default. */
     suspend fun searchStreams(token: String, query: String): Resource<List<MyStream>>
+
+    /** Start a new live stream and return the created stream (includes stream_key). */
+    suspend fun startStream(
+        token: String,
+        title: String,
+        description: String?,
+        thumbnailUrl: String?
+    ): Resource<ActiveStream>
+
+    /** End an active live stream. */
+    suspend fun endStream(token: String, streamCode: String): Resource<Unit>
 }

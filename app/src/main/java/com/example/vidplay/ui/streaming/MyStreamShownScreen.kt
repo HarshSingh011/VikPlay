@@ -8,15 +8,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.example.vidplay.domain.model.MyStream
 
 @Composable
 fun MyStreamShownScreen(
-    streams: List<StreamItem>,
-    query: String,
-    currentUserId: Int
+    streams: List<MyStream>,
+    query: String
 ) {
-    val myStreams = streams.filter { it.user_id == currentUserId }
-    val filtered = if (query.isBlank()) myStreams else myStreams.filter {
+    val filtered = if (query.isBlank()) streams else streams.filter {
         it.title.contains(query, ignoreCase = true) || it.description.contains(query, ignoreCase = true)
     }
 
@@ -27,7 +26,7 @@ fun MyStreamShownScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items(filtered) { item ->
-            StreamCard(item)
+            MyStreamCard(item)
         }
     }
 }

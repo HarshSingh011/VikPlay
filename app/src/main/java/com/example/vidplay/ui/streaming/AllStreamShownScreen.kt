@@ -34,8 +34,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -46,6 +44,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.example.vidplay.presentation.state.StartStreamUiState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +54,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -63,6 +64,8 @@ import androidx.navigation.compose.rememberNavController
 import android.widget.Toast
 import coil.compose.rememberAsyncImagePainter
 import com.example.vidplay.Navigation.Routes
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import com.example.vidplay.domain.model.MyStream
 import com.example.vidplay.domain.model.Stream
 import com.example.vidplay.presentation.state.MyStreamUiState
@@ -99,11 +102,24 @@ fun AllStreamShownScreen(
     val myStreamsState  by viewModel.myStreamsState.collectAsState()
     val searchQuery    by viewModel.searchQuery.collectAsState()
     val searchState    by viewModel.searchState.collectAsState()
+    val startStreamState by viewModel.startStreamState.collectAsState()
 
     var selectedTab by remember { mutableStateOf(0) }
 
     val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    var showStartDialog by remember { mutableStateOf(false) }
+
+    // Navigate to live stream screen when stream starts successfully
+    LaunchedEffect(startStreamState) {
+        if (startStreamState is StartStreamUiState.Success) {
+            showStartDialog = false
+            navController.navigate(Routes.LIVE_STREAM)
+        } else if (startStreamState is StartStreamUiState.Error) {
+            Toast.makeText(context, (startStreamState as StartStreamUiState.Error).message, Toast.LENGTH_LONG).show()
+            viewModel.resetStartStreamState()
+        }
+    }
 
     // Show Toast when search returns empty
     LaunchedEffect(searchState) {
@@ -112,34 +128,7 @@ fun AllStreamShownScreen(
         }
     }
 
-    // Bottom nav items for switching between app sections
-    data class NavItem(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val route: String)
-    val bottomNavItems = listOf(
-        NavItem("Videos",    Icons.Default.VideoLibrary, Routes.PAGE1),
-        NavItem("Streaming", Icons.Default.LiveTv,        Routes.STREAMING)
-    )
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                bottomNavItems.forEachIndexed { index, item ->
-                    val isSelected = item.route == Routes.STREAMING
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            if (!isSelected) {
-                                navController.navigate(item.route) {
-                                    popUpTo(Routes.STREAMING) { inclusive = true }
-                                }
-                            }
-                        },
-                        icon  = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) }
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 0.dp)) {
                 val selectedColor   = Color(0xFF2196F3)
@@ -157,7 +146,12 @@ fun AllStreamShownScreen(
                 label = { Text("Search streams") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Search,
+                    keyboardType = KeyboardType.Text,
+                    capitalization = KeyboardCapitalization.None,
+                    autoCorrect = false
+                ),
                 keyboardActions = KeyboardActions(
                     onSearch = {
                         keyboardController?.hide()
@@ -259,11 +253,46 @@ fun AllStreamShownScreen(
                                 }
                             }
                             is StreamUiState.Success -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(state.streams) { item -> StreamCard(item) }
+                                if (state.streams.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                imageVector = Icons.Default.LiveTv,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(64.dp),
+                                                tint = Color(0xFF9E9E9E)
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(
+                                                text = "No live streams at the moment",
+                                                color = Color(0xFF9E9E9E),
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    LazyColumn(
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        items(state.streams) { item ->
+                                            StreamCard(
+                                                item = item,
+                                                onClick = {
+                                                    val encodedTitle = URLEncoder.encode(
+                                                        item.title,
+                                                        StandardCharsets.UTF_8.toString()
+                                                    )
+                                                    navController.navigate(
+                                                        "viewStream/${item.streamCode}?streamTitle=$encodedTitle"
+                                                    )
+                                                }
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -285,11 +314,31 @@ fun AllStreamShownScreen(
                                 }
                             }
                             is MyStreamUiState.Success -> {
-                                LazyColumn(
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(state.streams) { item -> MyStreamCard(item) }
+                                if (state.streams.isEmpty()) {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(
+                                                imageVector = Icons.Default.VideoLibrary,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(64.dp),
+                                                tint = Color(0xFF9E9E9E)
+                                            )
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(
+                                                text = "No stream history yet",
+                                                color = Color(0xFF9E9E9E),
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    MyStreamShownScreen(
+                                        streams = state.streams,
+                                        query = searchQuery
+                                    )
                                 }
                             }
                         }
@@ -299,13 +348,25 @@ fun AllStreamShownScreen(
         }
 
         FloatingActionButton(
-                onClick = { /* TODO: handle add stream action */ },
+                onClick = { showStartDialog = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(bottom = 80.dp, end = 16.dp),  // above bottom nav
                 shape = CircleShape
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add")
+            }
+            
+            if (showStartDialog) {
+                StartStreamDialog(
+                    onDismiss = { showStartDialog = false },
+                    isLoading = startStreamState is StartStreamUiState.Loading,
+                    onSubmit = { title, description, thumbnailUri ->
+                        // Only pass thumbnail if it's already a remote URL; local URIs can't be sent as-is
+                        val remoteUrl = if (thumbnailUri != null && thumbnailUri.startsWith("http")) thumbnailUri else null
+                        viewModel.startStream(title, description, remoteUrl)
+                    }
+                )
             }
         }
     }
@@ -400,9 +461,11 @@ fun MyStreamCard(item: MyStream) {
 }
 
 @Composable
-fun StreamCard(item: Stream) {
+fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.cardColors()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {

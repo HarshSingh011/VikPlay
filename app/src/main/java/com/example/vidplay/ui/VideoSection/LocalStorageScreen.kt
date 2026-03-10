@@ -58,27 +58,44 @@ private val categories = listOf(
     StorageCategory("Documents", Icons.Default.Folder)
 )
 
+/** Returns the permissions required for the given tab index. */
+private fun permissionsForTab(index: Int): Array<String> =
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        when (index) {
+            0    -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
+            1    -> arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
+            else -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
+        }
+    } else {
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
+    }
+
 @Composable
 fun LocalStorageScreen(navController: NavController) {
     val context = LocalContext.current
-    var selectedIndex by remember { mutableStateOf(0) }   // Video selected by default
+    var selectedIndex by remember { mutableStateOf(0) }
+    // Incremented every time any tab is tapped, so LaunchedEffect always re-fires
+    // and re-requests permission if the user previously dismissed or ignored the dialog.
+    var permissionTrigger by remember { mutableStateOf(0) }
 
-    // Request storage permission (same logic as Page1Screen)
+    // Incremented whenever at least one new permission is granted; children observe this to reload.
+    var reloadTrigger by remember { mutableStateOf(0) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        Log.d("LocalStorageScreen", "Storage permission granted: $isGranted")
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { results ->
+        results.forEach { (perm, granted) ->
+            Log.d("LocalStorageScreen", "$perm granted=$granted")
+        }
+        if (results.values.any { it }) reloadTrigger++
     }
 
-    LaunchedEffect(Unit) {
-        val readPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            Manifest.permission.READ_MEDIA_VIDEO
-        } else {
-            Manifest.permission.READ_EXTERNAL_STORAGE
+    // Re-check permission every time the selected tab changes OR the user taps a tab again.
+    LaunchedEffect(selectedIndex, permissionTrigger) {
+        val needed = permissionsForTab(selectedIndex).filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
         }
-        if (ContextCompat.checkSelfPermission(context, readPermission) != PackageManager.PERMISSION_GRANTED) {
-            permissionLauncher.launch(readPermission)
-        }
+        if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -114,7 +131,10 @@ fun LocalStorageScreen(navController: NavController) {
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
                         .background(bgColor)
-                        .clickable { selectedIndex = index }
+                        .clickable {
+                            selectedIndex = index
+                            permissionTrigger++ // always re-ask if permission is still missing
+                        }
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                 ) {
                     Icon(
@@ -141,7 +161,9 @@ fun LocalStorageScreen(navController: NavController) {
             .fillMaxWidth()
             .weight(1f)) {
             when (selectedIndex) {
-                0 -> VideoGrid(navController = navController)
+                0 -> VideoGrid(navController = navController, reloadTrigger = reloadTrigger)
+                1 -> MusicListScreen(reloadTrigger = reloadTrigger)
+                3 -> DocumentListScreen()
                 else -> {
                     val label = categories[selectedIndex].label
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {

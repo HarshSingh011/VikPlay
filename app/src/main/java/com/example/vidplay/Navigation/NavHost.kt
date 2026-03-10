@@ -48,8 +48,6 @@ fun MyAppNavHost(
     pipHandler: PipHandler,
     onVideoPlayerViewModelCreated: (VideoPlayerViewModel) -> Unit = {}
 ) {
-    // One shared ViewModel instance scoped to the Activity — both AllStreamShownScreen
-    // and LiveStreamingScreen must read from the same state (startStreamState).
     val streamViewModel: StreamViewModel = viewModel()
 
     val currentBackStack by navController.currentBackStackEntryAsState()

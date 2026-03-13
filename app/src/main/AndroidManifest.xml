@@ -18,6 +18,8 @@
     <!-- Required on Android 14+ for foreground services that use camera/mic -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Required on Android 14+ for music playback foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Keep CPU + Wi-Fi alive while streaming with screen off -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -69,6 +71,16 @@
             android:exported="false"
             android:foregroundServiceType="camera|microphone"
             android:stopWithTask="false" />
+
+        <!-- Background music playback service -->
+        <service
+            android:name=".ui.music.MusicPlayerService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

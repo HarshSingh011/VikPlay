@@ -175,7 +175,7 @@ object MediaUtils {
                 items.add(
                     Media(
                         uri      = uri,
-                        name     = cursor.getString(nameCol)     ?: "Unknown",
+                        name     = cursor.getString(nameCol) ?: "Unknown",
                         size     = cursor.getLong(sizeCol),
                         mimeType = cursor.getString(mimeTypeCol) ?: ""
                     )

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,6 +38,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,9 +54,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.vidplay.domain.model.MusicItem
+import com.example.vidplay.presentation.viewmodel.MusicPlayerViewModel
 import com.example.vidplay.utils.MediaUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -72,6 +76,10 @@ private fun formatDuration(ms: Long): String {
 fun MusicListScreen(reloadTrigger: Int = 0) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val musicViewModel: MusicPlayerViewModel = viewModel(
+        factory = MusicPlayerViewModel.Factory(context)
+    )
+    val playerState by musicViewModel.state.collectAsState()
 
     var tracks by remember { mutableStateOf<List<MusicItem>?>(null) }
     var selectedUris by remember { mutableStateOf<Set<Uri>>(emptySet()) }
@@ -160,9 +168,12 @@ fun MusicListScreen(reloadTrigger: Int = 0) {
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(list, key = { it.uri.toString() }) { track ->
+                        val isPlaying = playerState.currentTrack?.uri == track.uri
                         MusicTrackRow(
                             track = track,
                             isSelected = track.uri in selectedUris,
+                            isPlaying = isPlaying,
+                            isPlayerActive = playerState.isPlaying && isPlaying,
                             onLongClick = { selectedUris = selectedUris + track.uri },
                             onClick = {
                                 if (isSelectionMode) {
@@ -170,6 +181,13 @@ fun MusicListScreen(reloadTrigger: Int = 0) {
                                         selectedUris - track.uri
                                     else
                                         selectedUris + track.uri
+                                } else {
+                                    val index = list.indexOf(track)
+                                    if (isPlaying) {
+                                        musicViewModel.togglePlayPause()
+                                    } else {
+                                        musicViewModel.playTrack(list, index)
+                                    }
                                 }
                             }
                         )
@@ -185,6 +203,8 @@ fun MusicListScreen(reloadTrigger: Int = 0) {
 private fun MusicTrackRow(
     track: MusicItem,
     isSelected: Boolean,
+    isPlaying: Boolean,
+    isPlayerActive: Boolean,
     onLongClick: () -> Unit,
     onClick: () -> Unit
 ) {
@@ -192,11 +212,15 @@ private fun MusicTrackRow(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (isSelected)
-                    Modifier
+                when {
+                    isSelected -> Modifier
                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                         .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
-                else Modifier
+                    isPlaying -> Modifier
+                        .background(MaterialTheme.colorScheme.secondaryContainer, RoundedCornerShape(8.dp))
+                        .border(1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp))
+                    else -> Modifier
+                }
             )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 8.dp, horizontal = 4.dp),
@@ -237,6 +261,18 @@ private fun MusicTrackRow(
                     modifier = Modifier
                         .size(20.dp)
                         .background(MaterialTheme.colorScheme.primary, CircleShape)
+                )
+            } else if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.45f))
+                )
+                Icon(
+                    imageVector = if (isPlayerActive) Icons.Default.MusicNote else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlayerActive) "Playing" else "Paused",
+                    tint = Color.White,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }

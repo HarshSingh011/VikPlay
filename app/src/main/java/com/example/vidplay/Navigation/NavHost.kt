@@ -19,6 +19,11 @@ import com.example.vidplay.ui.streaming.LiveStreamingScreen
 import com.example.vidplay.ui.streaming.TokenTakenPageScreen
 import com.example.vidplay.ui.streaming.ViewerStreamingScreen
 import com.example.vidplay.ui.CallSection.CallScreen
+import com.example.vidplay.ui.auth.LoginScreen
+import com.example.vidplay.ui.auth.RegisterScreen
+import com.example.vidplay.ui.auth.OtpScreen
+import com.example.vidplay.ui.auth.EmailVerifyScreen
+import com.example.vidplay.ui.auth.ForgotPasswordScreen
 import com.example.vidplay.presentation.viewmodel.StreamViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
@@ -36,9 +41,11 @@ import androidx.compose.runtime.getValue
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
+import com.example.vidplay.ui.music.NowPlayingBar
 
 
 @Composable
@@ -48,50 +55,92 @@ fun MyAppNavHost(
     pipHandler: PipHandler,
     onVideoPlayerViewModelCreated: (VideoPlayerViewModel) -> Unit = {}
 ) {
-    // One shared ViewModel instance scoped to the Activity — both AllStreamShownScreen
-    // and LiveStreamingScreen must read from the same state (startStreamState).
     val streamViewModel: StreamViewModel = viewModel()
 
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route ?: ""
+    
+    // Check if current route is an auth route
+    val isAuthRoute = currentRoute == Routes.LOGIN || 
+                     currentRoute == Routes.REGISTER || 
+                     currentRoute == Routes.EMAIL_VERIFY ||
+                     currentRoute.startsWith("otp") ||
+                     currentRoute.startsWith("forgotPassword")
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                // Video tab
-                NavigationBarItem(
-                    selected = currentRoute == Routes.LOCAL_STORAGE || currentRoute == Routes.PAGE1 || currentRoute.startsWith("videoPlayer"),
-                    onClick = {
-                        navController.navigate(Routes.LOCAL_STORAGE) { launchSingleTop = true }
-                    },
-                    icon = { Icon(Icons.Default.Videocam, contentDescription = "Video") },
-                    label = { Text("Video") }
-                )
+            if (!isAuthRoute) {
+                Column {
+                    NowPlayingBar()
+                    NavigationBar {
+                    // Video tab
+                    NavigationBarItem(
+                        selected = currentRoute == Routes.LOCAL_STORAGE || currentRoute == Routes.PAGE1 || currentRoute.startsWith("videoPlayer"),
+                        onClick = {
+                            navController.navigate(Routes.LOCAL_STORAGE) { launchSingleTop = true }
+                        },
+                        icon = { Icon(Icons.Default.Videocam, contentDescription = "Video") },
+                        label = { Text("Video") }
+                    )
 
-                // Stream tab
-                NavigationBarItem(
-                    selected = currentRoute == Routes.STREAMING,
-                    onClick = {
-                        navController.navigate(Routes.STREAMING) { launchSingleTop = true }
-                    },
-                    icon = { Icon(Icons.Default.LiveTv, contentDescription = "Stream") },
-                    label = { Text("Stream") }
-                )
+                    // Stream tab
+                    NavigationBarItem(
+                        selected = currentRoute == Routes.STREAMING,
+                        onClick = {
+                            navController.navigate(Routes.STREAMING) { launchSingleTop = true }
+                        },
+                        icon = { Icon(Icons.Default.LiveTv, contentDescription = "Stream") },
+                        label = { Text("Stream") }
+                    )
 
-                // Call tab
-                NavigationBarItem(
-                    selected = currentRoute == Routes.CALL,
-                    onClick = {
-                        navController.navigate(Routes.CALL) { launchSingleTop = true }
-                    },
-                    icon = { Icon(Icons.Default.Call, contentDescription = "Call") },
-                    label = { Text("Call") }
-                )
+                    // Call tab
+                    NavigationBarItem(
+                        selected = currentRoute == Routes.CALL,
+                        onClick = {
+                            navController.navigate(Routes.CALL) { launchSingleTop = true }
+                        },
+                        icon = { Icon(Icons.Default.Call, contentDescription = "Call") },
+                        label = { Text("Call") }
+                    )
+                }
+                } // end Column wrapping NowPlayingBar + NavigationBar
             }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            NavHost(navController = navController, startDestination = Routes.LOCAL_STORAGE) {
+            NavHost(navController = navController, startDestination = Routes.LOGIN) {
+                // Auth Routes
+                composable(Routes.LOGIN) {
+                    LoginScreen(navController = navController)
+                }
+                composable(Routes.REGISTER) {
+                    RegisterScreen(navController = navController)
+                }
+                composable(
+                    route = Routes.OTP,
+                    arguments = listOf(
+                        navArgument("email") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val email = backStackEntry.arguments?.getString("email") ?: ""
+                    OtpScreen(navController = navController, email = email)
+                }
+                
+                composable(Routes.EMAIL_VERIFY) {
+                    EmailVerifyScreen(navController = navController)
+                }
+                
+                composable(
+                    route = Routes.FORGOT_PASSWORD,
+                    arguments = listOf(
+                        navArgument("email") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val email = backStackEntry.arguments?.getString("email") ?: ""
+                    ForgotPasswordScreen(navController = navController, email = email)
+                }
+                
+                // Main App Routes
                 composable("main") {
                     MainScreen(navController = navController)
                 }

@@ -1,6 +1,13 @@
 package com.example.vidplay.Navigation
 
 object Routes {
+    // Auth Routes
+    const val LOGIN              = "login"
+    const val REGISTER           = "register"
+    const val OTP                = "otp/{email}"
+    const val EMAIL_VERIFY       = "emailVerify"
+    const val FORGOT_PASSWORD    = "forgotPassword/{email}"
+    
     const val MAIN         = "main"
     const val PAGE1        = "page1"
     const val VIDEO_PLAYER = "videoPlayer/{videoUri}"

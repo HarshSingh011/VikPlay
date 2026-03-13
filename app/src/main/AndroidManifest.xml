@@ -2,8 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Use the new permission for Android 13+ -->
+    <!-- Use the new permissions for Android 13+ -->
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 
     <!-- Optional: Add backward compatibility for Android 12 and below -->
     <uses-permission
@@ -17,6 +18,8 @@
     <!-- Required on Android 14+ for foreground services that use camera/mic -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Required on Android 14+ for music playback foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Keep CPU + Wi-Fi alive while streaming with screen off -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
@@ -68,6 +71,16 @@
             android:exported="false"
             android:foregroundServiceType="camera|microphone"
             android:stopWithTask="false" />
+
+        <!-- Background music playback service -->
+        <service
+            android:name=".ui.music.MusicPlayerService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

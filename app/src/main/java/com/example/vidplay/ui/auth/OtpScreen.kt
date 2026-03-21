@@ -12,13 +12,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +30,6 @@ import com.example.vidplay.Navigation.Routes
 @Composable
 fun OtpScreen(navController: NavController, email: String) {
     val focusRequesters = List(6) { FocusRequester() }
-    val focusManager = LocalFocusManager.current
     var otpValues by remember { mutableStateOf(listOf("", "", "", "", "", "")) }
     var isLoading by remember { mutableStateOf(false) }
 
@@ -84,28 +85,48 @@ fun OtpScreen(navController: NavController, email: String) {
                     OtpTextField(
                         value = otpValues[index],
                         onValueChange = { newValue ->
-                            if (newValue.length <= 1 && newValue.all { it.isDigit() }) {
-                                val updatedValues = otpValues.toMutableList()
-                                updatedValues[index] = newValue
-
-                                // Move to next field if a digit is entered
-                                if (newValue.isNotEmpty() && index < 5) {
-                                    focusRequesters[index + 1].requestFocus()
+                            val updatedValues = otpValues.toMutableList()
+                            
+                            when {
+                                // User typed a digit when field already has a value
+                                newValue.length > 1 && otpValues[index].isNotEmpty() -> {
+                                    // Field already has value, put new digit in next empty field
+                                    if (index < 5) {
+                                        updatedValues[index + 1] = newValue.last().toString()
+                                        otpValues = updatedValues
+                                        focusRequesters[index + 1].requestFocus()
+                                    }
+                                    // Don't update current field - keep it as is by not setting it
                                 }
-
-                                otpValues = updatedValues
+                                // User typed a digit in empty field
+                                newValue.length == 1 && newValue.all { it.isDigit() } -> {
+                                    updatedValues[index] = newValue
+                                    otpValues = updatedValues
+                                    // Auto-move to next field
+                                    if (index < 5) {
+                                        focusRequesters[index + 1].requestFocus()
+                                    }
+                                }
+                                // User pressed backspace and field had a value
+                                newValue.isEmpty() && otpValues[index].isNotEmpty() -> {
+                                    updatedValues[index] = ""
+                                    otpValues = updatedValues
+                                    // Move focus to previous field
+                                    if (index > 0) {
+                                        focusRequesters[index - 1].requestFocus()
+                                    }
+                                }
                             }
                         },
-                        onBackspace = {
-                            if (otpValues[index].isEmpty() && index > 0) {
-                                focusRequesters[index - 1].requestFocus()
+                        onBackspaceOnEmpty = {
+                            // Handle backspace when field is already empty
+                            if (index > 0) {
                                 val updatedValues = otpValues.toMutableList()
+                                // Clear previous field
                                 updatedValues[index - 1] = ""
                                 otpValues = updatedValues
-                            } else {
-                                val updatedValues = otpValues.toMutableList()
-                                updatedValues[index] = ""
-                                otpValues = updatedValues
+                                // Move focus to previous field
+                                focusRequesters[index - 1].requestFocus()
                             }
                         },
                         focusRequester = focusRequesters[index],
@@ -164,25 +185,37 @@ fun OtpScreen(navController: NavController, email: String) {
 private fun OtpTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    onBackspace: () -> Unit,
+    onBackspaceOnEmpty: () -> Unit,
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    // Create TextFieldValue with cursor at the end
+    val textFieldValue = TextFieldValue(
+        text = value,
+        selection = TextRange(value.length)
+    )
 
     BasicTextField(
-        value = value,
+        value = textFieldValue,
         onValueChange = { newValue ->
-            // Handle backspace
-            if (newValue.isEmpty() && value.isNotEmpty()) {
-                onBackspace()
-            } else {
-                onValueChange(newValue)
+            // Allow digit input and empty, pass through for parent to handle logic
+            if (newValue.text.isEmpty() || newValue.text.all { it.isDigit() }) {
+                onValueChange(newValue.text)
             }
         },
         modifier = modifier
             .size(56.dp)
             .focusRequester(focusRequester)
+            .onKeyEvent { keyEvent ->
+                // Detect backspace on empty field
+                if (keyEvent.key == Key.Backspace && value.isEmpty()) {
+                    onBackspaceOnEmpty()
+                    true
+                } else {
+                    false
+                }
+            }
             .border(
                 width = 2.dp,
                 color = if (value.isNotEmpty()) 

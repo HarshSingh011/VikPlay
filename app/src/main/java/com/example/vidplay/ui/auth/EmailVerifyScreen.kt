@@ -14,11 +14,34 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vidplay.Navigation.Routes
+import com.example.vidplay.data.repository.AuthRepositoryImpl
+import com.example.vidplay.data.source.remote.RetrofitClient
+import com.example.vidplay.domain.usecase.ForgotPasswordUseCase
+import com.example.vidplay.util.Resource
+import kotlinx.coroutines.launch
 
 @Composable
 fun EmailVerifyScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var emailError by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Initialize the use case (domain layer)
+    val authRepository = AuthRepositoryImpl(RetrofitClient.authApiService)
+    val forgotPasswordUseCase = ForgotPasswordUseCase(authRepository)
+
+    // Regex pattern for email validation
+    val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+
+    fun validateEmail(emailInput: String): String {
+        return when {
+            emailInput.isEmpty() -> "Email is required"
+            !emailInput.matches(emailPattern) -> "Invalid email format"
+            else -> ""
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -39,14 +62,17 @@ fun EmailVerifyScreen(navController: NavController) {
                     .padding(bottom = 32.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
+                IconButton(
+                    onClick = { navController.popBackStack() },
+                    enabled = !isLoading
+                ) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
             }
 
             // Title
             Text(
-                text = "Verify Email",
+                text = "Reset Password",
                 style = MaterialTheme.typography.headlineMedium,
                 modifier = Modifier
                     .align(Alignment.Start)
@@ -55,7 +81,7 @@ fun EmailVerifyScreen(navController: NavController) {
 
             // Subtitle
             Text(
-                text = "Enter your email address to verify your account",
+                text = "Enter your email address to receive a password reset code",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
@@ -66,7 +92,10 @@ fun EmailVerifyScreen(navController: NavController) {
             // Email Input Field
             OutlinedTextField(
                 value = email,
-                onValueChange = { email = it },
+                onValueChange = { 
+                    email = it
+                    emailError = ""
+                },
                 label = { Text("Email Address") },
                 placeholder = { Text("Enter your email") },
                 leadingIcon = {
@@ -74,18 +103,57 @@ fun EmailVerifyScreen(navController: NavController) {
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 32.dp),
+                    .padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true
+                singleLine = true,
+                isError = emailError.isNotEmpty(),
+                enabled = !isLoading
             )
+
+            // Email Error Message
+            if (emailError.isNotEmpty()) {
+                Text(
+                    text = emailError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 16.dp, start = 16.dp)
+                )
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Verify Button
             Button(
                 onClick = {
-                    isLoading = true
-                    // Navigate to forgot password screen
-                    navController.navigate(Routes.FORGOT_PASSWORD.replace("{email}", email)) {
-                        popUpTo(Routes.EMAIL_VERIFY) { inclusive = false }
+                    emailError = validateEmail(email)
+
+                    if (emailError.isEmpty()) {
+                        isLoading = true
+                        scope.launch {
+                            // Call the domain layer use case
+                            val result = forgotPasswordUseCase(email = email)
+                            
+                            when (result) {
+                                is Resource.Success -> {
+                                    // Navigate to OTP screen for forgot password flow
+                                    navController.navigate(
+                                        Routes.OTP_FORGOT_PASSWORD.replace("{email}", email) + "?flowType=forgotPassword"
+                                    ) {
+                                        popUpTo(Routes.EMAIL_VERIFY) { inclusive = false }
+                                    }
+                                }
+                                is Resource.Error -> {
+                                    isLoading = false
+                                    // Show error in snackbar
+                                    snackbarHostState.showSnackbar(result.message)
+                                }
+                                is Resource.Loading -> {
+                                    // Already handled by isLoading flag
+                                }
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
@@ -101,7 +169,7 @@ fun EmailVerifyScreen(navController: NavController) {
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Verify Email")
+                    Text("Send Reset Code")
                 }
             }
 
@@ -115,14 +183,23 @@ fun EmailVerifyScreen(navController: NavController) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.EMAIL_VERIFY) { inclusive = true }
-                    }
-                }) {
+                TextButton(
+                    onClick = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.EMAIL_VERIFY) { inclusive = true }
+                        }
+                    },
+                    enabled = !isLoading
+                ) {
                     Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
+
+        // Snackbar Host
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }

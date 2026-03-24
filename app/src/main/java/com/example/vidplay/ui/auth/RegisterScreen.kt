@@ -308,8 +308,10 @@ fun RegisterScreen(navController: NavController) {
                             
                             when (result) {
                                 is Resource.Success -> {
-                                    // Navigate to OTP screen on successful registration
-                                    navController.navigate(Routes.OTP.replace("{email}", email)) {
+                                    // Navigate to OTP screen on successful registration with flowType
+                                    navController.navigate(
+                                        Routes.OTP.replace("{email}", email) + "?flowType=registration"
+                                    ) {
                                         popUpTo(Routes.REGISTER) { inclusive = true }
                                     }
                                 }

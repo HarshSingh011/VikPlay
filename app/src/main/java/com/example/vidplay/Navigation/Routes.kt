@@ -4,6 +4,7 @@ object Routes {
     const val LOGIN              = "login"
     const val REGISTER           = "register"
     const val OTP                = "otp/{email}"
+    const val OTP_FORGOT_PASSWORD = "otpForgotPassword/{email}"
     const val EMAIL_VERIFY       = "emailVerify"
     const val FORGOT_PASSWORD    = "forgotPassword/{email}"
     

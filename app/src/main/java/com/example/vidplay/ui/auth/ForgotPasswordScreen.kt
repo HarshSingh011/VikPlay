@@ -17,6 +17,12 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.vidplay.Navigation.Routes
+import com.example.vidplay.data.repository.AuthRepositoryImpl
+import com.example.vidplay.data.source.remote.RetrofitClient
+import com.example.vidplay.domain.usecase.ResetPasswordUseCase
+import com.example.vidplay.util.PasswordValidator
+import com.example.vidplay.util.Resource
+import kotlinx.coroutines.launch
 
 @Composable
 fun ForgotPasswordScreen(navController: NavController, email: String) {
@@ -26,6 +32,14 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var passwordsMatch by remember { mutableStateOf(true) }
+    var passwordError by remember { mutableStateOf("") }
+    var resetError by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Initialize the use case (domain layer)
+    val authRepository = AuthRepositoryImpl(RetrofitClient.authApiService)
+    val resetPasswordUseCase = ResetPasswordUseCase(authRepository)
 
     Box(
         modifier = Modifier
@@ -48,7 +62,8 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { navController.popBackStack() }
+                    onClick = { navController.popBackStack() },
+                    enabled = !isLoading
                 ) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                 }
@@ -76,7 +91,15 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
             // New Password Field
             OutlinedTextField(
                 value = newPassword,
-                onValueChange = { newPassword = it },
+                onValueChange = {
+                    newPassword = it
+                    passwordError = if (it.isNotEmpty() && !PasswordValidator.isValidPassword(it)) {
+                        PasswordValidator.getPasswordErrorMessage(it)
+                    } else {
+                        ""
+                    }
+                    resetError = ""
+                },
                 label = { Text("New Password") },
                 placeholder = { Text("Enter new password") },
                 leadingIcon = {
@@ -91,12 +114,28 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     }
                 },
                 visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                isError = passwordError.isNotEmpty(),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                    .padding(bottom = 4.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
+                singleLine = true,
+                enabled = !isLoading
             )
+
+            // Password error message
+            if (passwordError.isNotEmpty()) {
+                Text(
+                    passwordError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 16.dp)
+                )
+            } else {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Confirm Password Field
             OutlinedTextField(
@@ -104,6 +143,7 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                 onValueChange = {
                     confirmPassword = it
                     passwordsMatch = newPassword == it
+                    resetError = ""
                 },
                 label = { Text("Confirm Password") },
                 placeholder = { Text("Confirm new password") },
@@ -124,7 +164,8 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
+                singleLine = true,
+                enabled = !isLoading
             )
 
             // Error message for password mismatch
@@ -144,11 +185,37 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
             // Reset Password Button
             Button(
                 onClick = {
+                    // Validate before making API call
+                    if (!PasswordValidator.isValidPassword(newPassword)) {
+                        passwordError = PasswordValidator.getPasswordErrorMessage(newPassword)
+                        return@Button
+                    }
+
+                    if (newPassword != confirmPassword) {
+                        return@Button
+                    }
+
                     isLoading = true
-                    // TODO: Handle password reset
-                    // After successful reset, navigate back to login
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                    scope.launch {
+                        val result = resetPasswordUseCase(email, newPassword, confirmPassword)
+                        when (result) {
+                            is Resource.Success -> {
+                                // Navigate to login on success
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                                }
+                            }
+                            is Resource.Error -> {
+                                isLoading = false
+                                snackbarHostState.showSnackbar(
+                                    message = result.message,
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                            is Resource.Loading -> {
+                                // Already showing loading state
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
@@ -157,7 +224,9 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     .padding(bottom = 16.dp),
                 enabled = newPassword.isNotEmpty() && 
                          confirmPassword.isNotEmpty() && 
-                         passwordsMatch && !isLoading
+                         passwordsMatch && 
+                         passwordError.isEmpty() &&
+                         !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -187,15 +256,26 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
-                    }
-                }) {
+                TextButton(
+                    onClick = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                        }
+                    },
+                    enabled = !isLoading
+                ) {
                     Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
+
+        // Snackbar for error messages
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
     }
 }
 

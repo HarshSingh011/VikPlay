@@ -65,6 +65,7 @@ fun MyAppNavHost(
                      currentRoute == Routes.REGISTER || 
                      currentRoute == Routes.EMAIL_VERIFY ||
                      currentRoute.startsWith("otp") ||
+                     currentRoute.startsWith("otpForgotPassword") ||
                      currentRoute.startsWith("forgotPassword")
 
     Scaffold(
@@ -119,11 +120,25 @@ fun MyAppNavHost(
                 composable(
                     route = Routes.OTP,
                     arguments = listOf(
-                        navArgument("email") { type = NavType.StringType }
+                        navArgument("email") { type = NavType.StringType },
+                        navArgument("flowType") { type = NavType.StringType; defaultValue = "registration" }
                     )
                 ) { backStackEntry ->
                     val email = backStackEntry.arguments?.getString("email") ?: ""
-                    OtpScreen(navController = navController, email = email)
+                    val flowType = backStackEntry.arguments?.getString("flowType") ?: "registration"
+                    OtpScreen(navController = navController, email = email, flowType = flowType)
+                }
+                
+                composable(
+                    route = Routes.OTP_FORGOT_PASSWORD,
+                    arguments = listOf(
+                        navArgument("email") { type = NavType.StringType },
+                        navArgument("flowType") { type = NavType.StringType; defaultValue = "forgotPassword" }
+                    )
+                ) { backStackEntry ->
+                    val email = backStackEntry.arguments?.getString("email") ?: ""
+                    val flowType = backStackEntry.arguments?.getString("flowType") ?: "forgotPassword"
+                    OtpScreen(navController = navController, email = email, flowType = flowType)
                 }
                 
                 composable(Routes.EMAIL_VERIFY) {

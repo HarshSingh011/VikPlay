@@ -19,6 +19,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
@@ -229,7 +230,7 @@ private fun OtpTextField(
                 shape = MaterialTheme.shapes.medium
             ),
         singleLine = true,
-        textStyle = androidx.compose.ui.text.TextStyle(
+        textStyle = TextStyle(
             fontSize = 24.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface

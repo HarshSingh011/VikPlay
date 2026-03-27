@@ -218,10 +218,50 @@ fun EmailVerifyScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = "id:pixel_5"
+)
 @Composable
 fun EmailVerifyScreenPreview() {
     VidPlayTheme {
-        EmailVerifyScreen(navController = rememberNavController())
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Verify Email",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                "Enter your email address",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                enabled = false
+            ) {
+                Text("Send Code")
+            }
+        }
     }
 }

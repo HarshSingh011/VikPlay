@@ -1,9 +1,11 @@
+import org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     kotlin("kapt")
-    id("com.google.dagger.hilt.android")
+    alias(libs.plugins.hilt.android.plugin)
 }
 
 android {
@@ -43,6 +45,24 @@ android {
         compose = true
         buildConfig = true
     }
+
+    kapt {
+        correctErrorTypes = true
+        useBuildCache = false
+        javacOptions {
+            option("-nowarn")
+            option("-XDignore.symbol.file")
+        }
+        arguments {
+            arg("room.incremental", "true")
+        }
+    }
+    
+    tasks.withType(KaptGenerateStubsTask::class).configureEach {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
+    }
 }
 
 dependencies {
@@ -64,9 +84,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
     // Hilt
-    implementation("com.google.dagger:hilt-android:2.48")
-    kapt("com.google.dagger:hilt-compiler:2.48")
-    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     val nav_version = "2.8.9"

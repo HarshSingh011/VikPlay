@@ -11,6 +11,33 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
+// Discord-like Dark Theme with Blue/Green accents
+private val DiscordDarkColorScheme = darkColorScheme(
+    primary = BluePrimary,           // #0088FF - Primary blue
+    onPrimary = BlackBg,             // Text on primary
+    primaryContainer = DarkerSurface, // Containers
+    onPrimaryContainer = BlueAccent,  // Text in containers
+    secondary = GreenAccent,          // #00FF88 - Green accent
+    onSecondary = BlackBg,            // Text on secondary
+    secondaryContainer = DarkerSurface,
+    onSecondaryContainer = GreenAccent,
+    tertiary = BlueAccent,            // #00D4FF - Cyan blue
+    onTertiary = BlackBg,
+    tertiaryContainer = DarkerSurface,
+    onTertiaryContainer = BlueAccent,
+    error = Color(0xFFFF6B6B),
+    onError = BlackBg,
+    errorContainer = Color(0xFF8B0000),
+    onErrorContainer = Color(0xFFFF6B6B),
+    background = BlackBg,             // #0F0F0F - Pure black background
+    onBackground = TextPrimary,       // #E0E0E0 - Light text
+    surface = DarkSurface,            // #1A1A1A - Dark surface
+    onSurface = TextPrimary,          // Light text on surface
+    surfaceVariant = DarkerSurface,   // #2D2D2D - Darker variant
+    onSurfaceVariant = TextSecondary, // Medium gray text
+    outline = BorderColor             // #404040 - Dark borders
+)
+
 private val DarkColorScheme = darkColorScheme(
     primary = Purple80,
     secondary = PurpleGrey80,
@@ -21,34 +48,16 @@ private val LightColorScheme = lightColorScheme(
     primary = Purple40,
     secondary = PurpleGrey40,
     tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
 )
 
 @Composable
 fun VidPlayTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true,  // Always use dark theme
+    dynamicColor: Boolean = false, // Disable dynamic colors
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
+    // Always use Discord Dark Theme - ignore system theme preference
+    val colorScheme = DiscordDarkColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

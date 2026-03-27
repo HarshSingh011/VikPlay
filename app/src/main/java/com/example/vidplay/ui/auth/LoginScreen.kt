@@ -294,10 +294,53 @@ fun LoginScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = "id:pixel_5"
+)
 @Composable
 fun LoginScreenPreview() {
     VidPlayTheme {
-        LoginScreen(navController = rememberNavController())
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "VidPlay",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                enabled = false
+            ) {
+                Text("Login")
+            }
+        }
     }
 }

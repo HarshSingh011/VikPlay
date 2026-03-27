@@ -16,12 +16,14 @@ import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.MyAppNavHost
 import com.example.vidplay.ui.theme.VidPlayTheme
 import com.example.vidplay.utils.PermissionUtils
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import com.example.vidplay.presentation.pip.PipHandler
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val TAG = "MainActivity"
 

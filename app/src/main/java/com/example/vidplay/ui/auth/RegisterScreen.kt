@@ -396,10 +396,61 @@ fun RegisterScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = "id:pixel_5"
+)
 @Composable
 fun RegisterScreenPreview() {
     VidPlayTheme {
-        RegisterScreen(navController = rememberNavController())
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Create Account",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Username") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Email") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Password") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                enabled = false
+            ) {
+                Text("Create Account")
+            }
+        }
     }
 }

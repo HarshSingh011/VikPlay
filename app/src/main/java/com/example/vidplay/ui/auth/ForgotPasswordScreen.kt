@@ -220,7 +220,7 @@ fun ForgotPasswordScreen(
 
                     isLoading = true
                     scope.launch {
-                        val result = viewModel.resetPassword(email, newPassword)
+                        val result = viewModel.resetPassword(email, newPassword, confirmPassword)
                         when (result) {
                             is Resource.Success -> {
                                 // Navigate to login on success
@@ -294,11 +294,54 @@ fun ForgotPasswordScreen(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = "id:pixel_5"
+)
 @Composable
 fun ForgotPasswordScreenPreview() {
     VidPlayTheme {
-        ForgotPasswordScreen(navController = rememberNavController(), email = "test@example.com")
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Reset Password",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("New Password") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Confirm Password") },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                enabled = false
+            ) {
+                Text("Reset Password")
+            }
+        }
     }
 }
 

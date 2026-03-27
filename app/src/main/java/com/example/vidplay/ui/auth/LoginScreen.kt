@@ -130,7 +130,6 @@ fun LoginScreen(
                             email = it
                             emailError = ""
                         },
-                        label = { Text("Email") },
                         placeholder = { Text("Enter your email") },
                         leadingIcon = {
                             Icon(Icons.Default.Email, contentDescription = "Email")
@@ -151,7 +150,7 @@ fun LoginScreen(
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier
                                 .align(Alignment.Start)
-                                .padding(bottom = 16.dp, start = 16.dp)
+                                .padding(bottom = 8.dp, start = 16.dp)
                         )
                     }
 
@@ -161,7 +160,6 @@ fun LoginScreen(
                             password = it
                             passwordError = ""
                         },
-                        label = { Text("Password") },
                         placeholder = { Text("Enter your password") },
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = "Password")
@@ -253,7 +251,7 @@ fun LoginScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(48.dp)
+                            .height(56.dp)
                             .padding(bottom = 16.dp),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
@@ -267,7 +265,7 @@ fun LoginScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 24.dp),
+                            .padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         HorizontalDivider(
@@ -329,24 +327,20 @@ fun LoginScreenPreview() {
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(32.dp))
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = { Text("Enter email", color = DiscordTextInput) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false,
-                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                enabled = false
             )
             Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = { Text("Enter password", color = DiscordTextInput) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false,
-                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                enabled = false
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(

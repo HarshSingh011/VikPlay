@@ -146,7 +146,6 @@ fun RegisterScreen(
                     username = it
                     usernameError = ""
                 },
-                label = { Text("Username") },
                 placeholder = { Text("Enter username") },
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = "Username")
@@ -174,7 +173,6 @@ fun RegisterScreen(
                     email = it
                     emailError = ""
                 },
-                label = { Text("Email") },
                 placeholder = { Text("Enter your email") },
                 leadingIcon = {
                     Icon(Icons.Default.Email, contentDescription = "Email")
@@ -205,7 +203,6 @@ fun RegisterScreen(
                         passwordsMatch = password == confirmPassword
                     }
                 },
-                label = { Text("Password") },
                 placeholder = { Text("Enter password") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = "Password")
@@ -253,7 +250,6 @@ fun RegisterScreen(
                     confirmPassword = it
                     passwordsMatch = password == it
                 },
-                label = { Text("Confirm Password") },
                 placeholder = { Text("Confirm password") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
@@ -334,7 +330,7 @@ fun RegisterScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -402,50 +398,35 @@ fun RegisterScreenPreview() {
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(24.dp))
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Username", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = { Text("Choose username", color = DiscordTextInput) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                enabled = false,
-                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
             )
             Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = { Text("Enter email", color = DiscordTextInput) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                enabled = false,
-                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
             )
             Spacer(modifier = Modifier.height(12.dp))
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = { Text("Enter password", color = DiscordTextInput) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                enabled = false,
-                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(56.dp),
                 enabled = false,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

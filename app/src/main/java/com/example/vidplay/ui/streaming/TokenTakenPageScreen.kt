@@ -34,6 +34,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
 import com.example.vidplay.util.PreferenceHelper
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
 fun TokenTakenPageScreen(navController: NavController = rememberNavController()) {
@@ -55,14 +56,9 @@ fun TokenTakenPageScreen(navController: NavController = rememberNavController())
 		OutlinedTextField(
 			value = text,
 			onValueChange = { text = it },
-			shape = boxShape,
-			modifier = Modifier
-				.fillMaxWidth()
-				.heightIn(min = (3 * 24).dp),
-			label = { Text("Enter token") },
+			modifier = Modifier.fillMaxWidth(),
+			placeholder = { Text("Enter token") },
 			singleLine = false,
-			minLines = 3,
-			maxLines = 3,
 			keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
 			keyboardActions = KeyboardActions(
 				onDone = {

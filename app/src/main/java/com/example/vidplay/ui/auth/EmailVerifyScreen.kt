@@ -77,17 +77,13 @@ fun EmailVerifyScreen(
             EmailVerifyScreenLoading()
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                modifier = Modifier.fillMaxSize()
             ) {
                 // Back Button at Top
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 32.dp),
+                        .padding(start = 24.dp, top = 24.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
@@ -97,129 +93,142 @@ fun EmailVerifyScreen(
                     }
                 }
 
-                // Title
-                Text(
-                    text = "Reset Password",
-                    style = MaterialTheme.typography.headlineMedium,
+                // Main Content - Centered
+                Column(
                     modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 8.dp)
-                )
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Title
+                    Text(
+                        text = "Reset Password",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 8.dp)
+                    )
 
-            // Subtitle
-            Text(
-                text = "Enter your email address to receive a password reset code",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 32.dp)
-            )
+                    // Subtitle
+                    Text(
+                        text = "Enter your email address to receive a password reset code",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 32.dp)
+                    )
 
-            // Email Input Field
-            CustomOutlinedTextField(
-                value = email,
-                onValueChange = { 
-                    email = it
-                    emailError = ""
-                },
-                label = { Text("Email Address") },
-                placeholder = { Text("Enter your email") },
-                leadingIcon = {
-                    Icon(Icons.Default.Email, contentDescription = "Email")
-                },
-                modifier = Modifier.padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                isError = emailError.isNotEmpty()
-            )
+                    // Email Input Field
+                    CustomOutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            emailError = ""
+                        },
+                        placeholder = { Text("Enter your email") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = "Email")
+                        },
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        isError = emailError.isNotEmpty()
+                    )
 
-            // Email Error Message
-            if (emailError.isNotEmpty()) {
-                Text(
-                    text = emailError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            }
+                    // Email Error Message
+                    if (emailError.isNotEmpty()) {
+                        Text(
+                            text = emailError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(bottom = 16.dp, start = 16.dp)
+                        )
+                    }
 
-            // Verify Button
-            Button(
-                onClick = {
-                    emailError = validateEmail(email)
+                    // Verify Button
+                    Button(
+                        onClick = {
+                            emailError = validateEmail(email)
 
-                    if (emailError.isEmpty()) {
-                        isLoading = true
-                        scope.launch {
-                            // Call the domain layer use case via viewModel
-                            val result = viewModel.sendResetCode(email = email)
-                            
-                            when (result) {
-                                is Resource.Success -> {
-                                    // Navigate to OTP screen for forgot password flow
-                                    navController.navigate(
-                                        Routes.OTP_FORGOT_PASSWORD.replace("{email}", email) + "?flowType=forgotPassword"
-                                    ) {
-                                        popUpTo(Routes.EMAIL_VERIFY) { inclusive = false }
+                            if (emailError.isEmpty()) {
+                                isLoading = true
+                                scope.launch {
+                                    // Call the domain layer use case via viewModel
+                                    val result = viewModel.sendResetCode(email = email)
+
+                                    when (result) {
+                                        is Resource.Success -> {
+                                            // Navigate to OTP screen for forgot password flow
+                                            navController.navigate(
+                                                Routes.OTP_FORGOT_PASSWORD.replace(
+                                                    "{email}",
+                                                    email
+                                                ) + "?flowType=forgotPassword"
+                                            ) {
+                                                popUpTo(Routes.EMAIL_VERIFY) { inclusive = false }
+                                            }
+                                        }
+
+                                        is Resource.Error -> {
+                                            isLoading = false
+                                            // Show error in snackbar
+                                            snackbarHostState.showSnackbar(result.message)
+                                        }
+
+                                        is Resource.Loading -> {
+                                            // Already handled by isLoading flag
+                                        }
                                     }
                                 }
-                                is Resource.Error -> {
-                                    isLoading = false
-                                    // Show error in snackbar
-                                    snackbarHostState.showSnackbar(result.message)
-                                }
-                                is Resource.Loading -> {
-                                    // Already handled by isLoading flag
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        ),
+                        enabled = email.isNotEmpty()
+                    ) {
+                        Text("Send Reset Code")
+                    }
+
+                    // Back to Login Link
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            "Remember your password? ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        TextButton(
+                            onClick = {
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(Routes.EMAIL_VERIFY) { inclusive = true }
                                 }
                             }
+                        ) {
+                            Text("Login", color = MaterialTheme.colorScheme.primary)
                         }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(bottom = 16.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                ),
-                enabled = email.isNotEmpty()
-            ) {
-                Text("Send Reset Code")
-            }
-
-            // Back to Login Link
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "Remember your password? ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(
-                    onClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.EMAIL_VERIFY) { inclusive = true }
-                        }
-                    }
-                ) {
-                    Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
             }
-            }
-        }
 
-        // Snackbar Host
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+            // Snackbar Host
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 }
 
@@ -252,24 +261,19 @@ fun EmailVerifyScreenPreview() {
                 color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(24.dp))
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
                 placeholder = { Text("Enter email", color = DiscordTextInput) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                enabled = false,
-                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+                modifier = Modifier.fillMaxWidth(),
+                enabled = false
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
                 onClick = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(56.dp),
                 enabled = false,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

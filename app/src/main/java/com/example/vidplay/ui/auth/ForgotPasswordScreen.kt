@@ -129,7 +129,6 @@ fun ForgotPasswordScreen(
                     }
                     resetError = ""
                 },
-                label = { Text("New Password") },
                 placeholder = { Text("Enter new password") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = "Password")
@@ -169,7 +168,6 @@ fun ForgotPasswordScreen(
                     passwordsMatch = newPassword == it
                     resetError = ""
                 },
-                label = { Text("Confirm Password") },
                 placeholder = { Text("Confirm new password") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
@@ -240,7 +238,7 @@ fun ForgotPasswordScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
                     .padding(bottom = 16.dp),
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
@@ -349,7 +347,7 @@ fun ForgotPasswordScreenPreview() {
                 onClick = {},
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(56.dp),
                 enabled = false,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,

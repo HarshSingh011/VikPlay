@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.vidplay.presentation.state.StartStreamUiState
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -138,12 +139,10 @@ fun AllStreamShownScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChanged(it) },
+                placeholder = { Text("Search streams") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFFFFFFF)),
-                shape = RoundedCornerShape(24.dp),
-                label = { Text("Search streams") },
+                    .clip(RoundedCornerShape(24.dp)),
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(

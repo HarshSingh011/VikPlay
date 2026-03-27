@@ -3,12 +3,14 @@ package com.example.vidplay.ui.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,17 +20,21 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
 import com.example.vidplay.presentation.viewmodel.LoginViewModel
-import com.example.vidplay.ui.theme.VidPlayTheme
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
 fun LoginScreen(
@@ -79,7 +85,6 @@ fun LoginScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         if (isLoading) {
-            // Show skeleton loading screen
             LoginScreenLoading()
         } else {
             Column(
@@ -87,208 +92,215 @@ fun LoginScreen(
                     .fillMaxSize()
                     .padding(24.dp)
                     .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // App Title
-                Text(
-                text = "VidPlay",
-                style = MaterialTheme.typography.displaySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
-
-            // Login Title
-            Text(
-                text = "Login",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 24.dp)
-            )
-
-            // Email Field
-            OutlinedTextField(
-                value = email,
-                onValueChange = { 
-                    email = it
-                    emailError = ""
-                },
-                label = { Text("Email") },
-                placeholder = { Text("Enter your email") },
-                leadingIcon = {
-                    Icon(Icons.Default.Email, contentDescription = "Email")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next
-                ),
-                singleLine = true,
-                isError = emailError.isNotEmpty()
-            )
-
-            // Email Error Message
-            if (emailError.isNotEmpty()) {
-                Text(
-                    text = emailError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+                        .fillMaxWidth()
+                        .padding(top = 32.dp, bottom = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "VidPlay",
+                        style = MaterialTheme.typography.displaySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
 
-            // Password Field
-            OutlinedTextField(
-                value = password,
-                onValueChange = { 
-                    password = it
-                    passwordError = ""
-                },
-                label = { Text("Password") },
-                placeholder = { Text("Enter your password") },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = "Password")
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { passwordVisible = !passwordVisible }
-                    ) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility"
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Login",
+                        style = MaterialTheme.typography.headlineMedium,
+                        modifier = Modifier
+                            .align(Alignment.Start)
+                            .padding(bottom = 24.dp)
+                            .fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
+
+                    CustomOutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            emailError = ""
+                        },
+                        label = { Text("Email") },
+                        placeholder = { Text("Enter your email") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Email, contentDescription = "Email")
+                        },
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Email,
+                            imeAction = ImeAction.Next
+                        ),
+                        isError = emailError.isNotEmpty(),
+                        singleLine = true
+                    )
+
+                    if (emailError.isNotEmpty()) {
+                        Text(
+                            text = emailError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(bottom = 16.dp, start = 16.dp)
                         )
                     }
-                },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done
-                ),
-                singleLine = true,
-                isError = passwordError.isNotEmpty()
-            )
 
-            // Password Error Message
-            if (passwordError.isNotEmpty()) {
-                Text(
-                    text = passwordError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+                    CustomOutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            passwordError = ""
+                        },
+                        label = { Text("Password") },
+                        placeholder = { Text("Enter your password") },
+                        leadingIcon = {
+                            Icon(Icons.Default.Lock, contentDescription = "Password")
+                        },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = { passwordVisible = !passwordVisible }
+                            ) {
+                                Icon(
+                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Toggle password visibility"
+                                )
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        modifier = Modifier.padding(bottom = 8.dp),
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Password,
+                            imeAction = ImeAction.Done
+                        ),
+                        isError = passwordError.isNotEmpty(),
+                        singleLine = true
+                    )
 
-            // Login Error Message
-            if (loginError.isNotEmpty()) {
-                Text(
-                    text = loginError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            }
+                    if (passwordError.isNotEmpty()) {
+                        Text(
+                            text = passwordError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(bottom = 8.dp, start = 16.dp)
+                        )
+                    }
 
-            // Forgot Password Link
-            TextButton(
-                onClick = {
-                    navController.navigate(Routes.EMAIL_VERIFY)
-                },
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(bottom = 24.dp)
-            ) {
-                Text(
-                    "Forgot Password?",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
+                    if (loginError.isNotEmpty()) {
+                        Text(
+                            text = loginError,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier
+                                .align(Alignment.Start)
+                                .padding(bottom = 0.dp, start = 16.dp)
+                        )
+                    }
 
-            // Login Button
-            Button(
-                onClick = {
-                    emailError = validateEmail(email)
-                    passwordError = validatePassword(password)
-                    loginError = ""
+                    TextButton(
+                        onClick = {
+                            navController.navigate(Routes.EMAIL_VERIFY)
+                        },
+                        modifier = Modifier
+                            .align(Alignment.End)
+                            .padding(bottom = 16.dp)
+                    ) {
+                        Text(
+                            "Forgot Password?",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
 
-                    if (emailError.isEmpty() && passwordError.isEmpty()) {
-                        isLoading = true
-                        scope.launch {
-                            // Call the domain layer use case via viewModel
-                            val result = viewModel.login(email = email, password = password)
-                            
-                            when (result) {
-                                is Resource.Success -> {
-                                    // Navigate to LOCAL_STORAGE screen on successful login
-                                    navController.navigate(Routes.LOCAL_STORAGE) {
-                                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    Button(
+                        onClick = {
+                            emailError = validateEmail(email)
+                            passwordError = validatePassword(password)
+                            loginError = ""
+
+                            if (emailError.isEmpty() && passwordError.isEmpty()) {
+                                isLoading = true
+                                scope.launch {
+                                    val result = viewModel.login(email = email, password = password)
+                                    
+                                    when (result) {
+                                        is Resource.Success -> {
+                                            navController.navigate(Routes.LOCAL_STORAGE) {
+                                                popUpTo(Routes.LOGIN) { inclusive = true }
+                                            }
+                                        }
+                                        is Resource.Error -> {
+                                            loginError = result.message
+                                            isLoading = false
+                                        }
+                                        is Resource.Loading -> {
+                                            // Already handled by isLoading flag
+                                        }
                                     }
                                 }
-                                is Resource.Error -> {
-                                    loginError = result.message
-                                    isLoading = false
-                                }
-                                is Resource.Loading -> {
-                                    // Already handled by isLoading flag
-                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .padding(bottom = 16.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Text("Login")
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+                        Text(
+                            "Don't have an account?",
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.weight(1f),
+                            thickness = DividerDefaults.Thickness,
+                            color = DividerDefaults.color
+                        )
+                    }
+
+                    TextButton(
+                        onClick = {
+                            navController.navigate(Routes.REGISTER) {
+                                popUpTo(Routes.LOGIN) { inclusive = false }
                             }
                         }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .padding(bottom = 16.dp)
-            ) {
-                Text("Login")
-            }
-
-            // Divider
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 24.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Divider(modifier = Modifier.weight(1f))
-                Text(
-                    "Don't have an account?",
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Divider(modifier = Modifier.weight(1f))
-            }
-
-            // Create Account Link
-            TextButton(
-                onClick = {
-                    navController.navigate(Routes.REGISTER) {
-                        popUpTo(Routes.LOGIN) { inclusive = false }
+                    ) {
+                        Text(
+                            "Create a New Account",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
-            ) {
-                Text(
-                    "Create a New Account",
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
             }
         }
     }
@@ -297,11 +309,12 @@ fun LoginScreen(
 @Preview(
     showBackground = true,
     showSystemUi = true,
-    device = "id:pixel_5"
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
 )
 @Composable
 fun LoginScreenPreview() {
-    VidPlayTheme {
+    AuthTheme {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -319,17 +332,21 @@ fun LoginScreenPreview() {
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Email") },
+                label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter email", color = DiscordTextInput) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Password") },
+                label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter password", color = DiscordTextInput) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -337,7 +354,13 @@ fun LoginScreenPreview() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = false
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
             ) {
                 Text("Login")
             }

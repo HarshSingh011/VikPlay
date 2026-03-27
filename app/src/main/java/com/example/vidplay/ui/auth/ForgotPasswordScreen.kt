@@ -8,6 +8,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,11 +22,15 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
 import com.example.vidplay.presentation.viewmodel.ForgotPasswordViewModel
-import com.example.vidplay.ui.theme.VidPlayTheme
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.PasswordValidator
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
 fun ForgotPasswordScreen(
@@ -113,7 +118,7 @@ fun ForgotPasswordScreen(
             )
 
             // New Password Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = newPassword,
                 onValueChange = {
                     newPassword = it
@@ -139,9 +144,7 @@ fun ForgotPasswordScreen(
                 },
                 visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 isError = passwordError.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp),
+                modifier = Modifier.padding(bottom = 4.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
@@ -156,12 +159,10 @@ fun ForgotPasswordScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 16.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Confirm Password Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = confirmPassword,
                 onValueChange = {
                     confirmPassword = it
@@ -183,9 +184,7 @@ fun ForgotPasswordScreen(
                 },
                 visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 isError = !passwordsMatch && confirmPassword.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 enabled = !isLoading
@@ -201,8 +200,6 @@ fun ForgotPasswordScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 24.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
             // Reset Password Button
@@ -245,6 +242,11 @@ fun ForgotPasswordScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
                 enabled = newPassword.isNotEmpty() && 
                          confirmPassword.isNotEmpty() && 
                          passwordsMatch && 
@@ -297,11 +299,12 @@ fun ForgotPasswordScreen(
 @Preview(
     showBackground = true,
     showSystemUi = true,
-    device = "id:pixel_5"
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
 )
 @Composable
 fun ForgotPasswordScreenPreview() {
-    VidPlayTheme {
+    AuthTheme {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -319,17 +322,27 @@ fun ForgotPasswordScreenPreview() {
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("New Password") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                label = { Text("New Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter new password", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(16.dp))
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Confirm Password") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                label = { Text("Confirm Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Confirm password", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -337,7 +350,13 @@ fun ForgotPasswordScreenPreview() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = false
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
             ) {
                 Text("Reset Password")
             }

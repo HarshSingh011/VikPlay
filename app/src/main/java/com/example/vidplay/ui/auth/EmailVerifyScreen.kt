@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,13 +16,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
 import com.example.vidplay.presentation.viewmodel.EmailVerifyViewModel
-import com.example.vidplay.ui.theme.VidPlayTheme
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
 fun EmailVerifyScreen(
@@ -113,7 +117,7 @@ fun EmailVerifyScreen(
             )
 
             // Email Input Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = email,
                 onValueChange = { 
                     email = it
@@ -124,9 +128,7 @@ fun EmailVerifyScreen(
                 leadingIcon = {
                     Icon(Icons.Default.Email, contentDescription = "Email")
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
                 isError = emailError.isNotEmpty()
@@ -142,8 +144,6 @@ fun EmailVerifyScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 16.dp, start = 16.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
             // Verify Button
@@ -182,6 +182,11 @@ fun EmailVerifyScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
                 enabled = email.isNotEmpty()
             ) {
                 Text("Send Reset Code")
@@ -221,11 +226,12 @@ fun EmailVerifyScreen(
 @Preview(
     showBackground = true,
     showSystemUi = true,
-    device = "id:pixel_5"
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
 )
 @Composable
 fun EmailVerifyScreenPreview() {
-    VidPlayTheme {
+    AuthTheme {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -242,15 +248,21 @@ fun EmailVerifyScreenPreview() {
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 "Enter your email address",
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(24.dp))
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter email", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -258,7 +270,13 @@ fun EmailVerifyScreenPreview() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = false
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
             ) {
                 Text("Send Code")
             }

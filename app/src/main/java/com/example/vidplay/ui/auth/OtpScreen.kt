@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,10 +32,13 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
 import com.example.vidplay.presentation.viewmodel.OtpViewModel
-import com.example.vidplay.ui.theme.VidPlayTheme
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.cancelChildren
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
  * OTP Verification Screen that handles both registration and forgot password flows
@@ -231,6 +235,11 @@ fun OtpScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
                 enabled = otpValues.all { it.isNotEmpty() }
             ) {
                 Text("Verify")
@@ -335,11 +344,12 @@ private fun OtpTextField(
 @Preview(
     showBackground = true,
     showSystemUi = true,
-    device = "id:pixel_5"
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
 )
 @Composable
 fun OtpScreenPreview() {
-    VidPlayTheme {
+    AuthTheme {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -354,7 +364,7 @@ fun OtpScreenPreview() {
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(32.dp))
-            Text("6-digit code", style = MaterialTheme.typography.bodyMedium)
+            Text("6-digit code", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
             Spacer(modifier = Modifier.height(24.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -365,12 +375,12 @@ fun OtpScreenPreview() {
                         modifier = Modifier
                             .size(50.dp)
                             .background(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                color = MaterialTheme.colorScheme.surface,
                                 shape = MaterialTheme.shapes.small
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("*", style = MaterialTheme.typography.headlineMedium)
+                        Text("*", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
@@ -380,7 +390,13 @@ fun OtpScreenPreview() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = false
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
             ) {
                 Text("Verify")
             }

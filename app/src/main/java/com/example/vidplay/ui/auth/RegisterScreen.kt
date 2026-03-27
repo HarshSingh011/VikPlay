@@ -3,11 +3,13 @@ package com.example.vidplay.ui.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,11 +23,14 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
 import com.example.vidplay.presentation.viewmodel.RegisterViewModel
-import com.example.vidplay.ui.theme.VidPlayTheme
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.PasswordValidator
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
+import androidx.compose.ui.graphics.Color
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
 fun RegisterScreen(
@@ -114,7 +119,6 @@ fun RegisterScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-                // Back Button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -128,7 +132,6 @@ fun RegisterScreen(
                     }
                 }
 
-                // Register Title
                 Text(
                     text = "Create Account",
                     style = MaterialTheme.typography.headlineMedium,
@@ -137,8 +140,7 @@ fun RegisterScreen(
                         .padding(bottom = 24.dp)
                 )
 
-            // Username Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = username,
                 onValueChange = {
                     username = it
@@ -149,15 +151,12 @@ fun RegisterScreen(
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = "Username")
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 singleLine = true,
                 isError = usernameError.isNotEmpty()
             )
 
-            // Username Error Message
             if (usernameError.isNotEmpty()) {
                 Text(
                     text = usernameError,
@@ -167,12 +166,9 @@ fun RegisterScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 16.dp, start = 16.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Email Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = email,
                 onValueChange = {
                     email = it
@@ -183,15 +179,12 @@ fun RegisterScreen(
                 leadingIcon = {
                     Icon(Icons.Default.Email, contentDescription = "Email")
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
                 isError = emailError.isNotEmpty()
             )
 
-            // Email Error Message
             if (emailError.isNotEmpty()) {
                 Text(
                     text = emailError,
@@ -201,12 +194,9 @@ fun RegisterScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 16.dp, start = 16.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Password Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = password,
                 onValueChange = {
                     password = it
@@ -231,15 +221,12 @@ fun RegisterScreen(
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
                 isError = passwordError.isNotEmpty()
             )
 
-            // Password Error Message or Validation Requirement
             if (passwordError.isNotEmpty()) {
                 Text(
                     text = passwordError,
@@ -258,12 +245,9 @@ fun RegisterScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 16.dp, start = 16.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Confirm Password Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = confirmPassword,
                 onValueChange = {
                     confirmPassword = it
@@ -286,14 +270,11 @@ fun RegisterScreen(
                 },
                 visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 isError = !passwordsMatch && confirmPassword.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
 
-            // Error message for password mismatch
             if (!passwordsMatch && confirmPassword.isNotEmpty()) {
                 Text(
                     "Passwords don't match",
@@ -303,11 +284,8 @@ fun RegisterScreen(
                         .align(Alignment.Start)
                         .padding(bottom = 16.dp, start = 16.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Register Button
             Button(
                 onClick = {
                     usernameError = validateUsername(username)
@@ -358,6 +336,11 @@ fun RegisterScreen(
                     .fillMaxWidth()
                     .height(48.dp)
                     .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
                 enabled = username.isNotEmpty() && email.isNotEmpty() &&
                         password.isNotEmpty() && confirmPassword.isNotEmpty() &&
                         passwordsMatch
@@ -399,11 +382,12 @@ fun RegisterScreen(
 @Preview(
     showBackground = true,
     showSystemUi = true,
-    device = "id:pixel_5"
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
 )
 @Composable
 fun RegisterScreenPreview() {
-    VidPlayTheme {
+    AuthTheme {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -421,25 +405,40 @@ fun RegisterScreenPreview() {
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Username") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                label = { Text("Username", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Choose username", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                label = { Text("Email", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter email", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
                 value = "",
                 onValueChange = {},
-                label = { Text("Password") },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false
+                label = { Text("Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter password", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
             )
             Spacer(modifier = Modifier.height(24.dp))
             Button(
@@ -447,7 +446,13 @@ fun RegisterScreenPreview() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
-                enabled = false
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
             ) {
                 Text("Create Account")
             }

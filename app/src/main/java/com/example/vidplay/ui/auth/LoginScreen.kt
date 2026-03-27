@@ -19,16 +19,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
-import com.example.vidplay.data.repository.AuthRepositoryImpl
-import com.example.vidplay.data.source.remote.RetrofitClient
-import com.example.vidplay.domain.usecase.LoginUseCase
+import com.example.vidplay.presentation.viewmodel.LoginViewModel
+import com.example.vidplay.ui.theme.VidPlayTheme
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelChildren
 
 @Composable
-fun LoginScreen(navController: NavController) {
+fun LoginScreen(
+    navController: NavController,
+    viewModel: LoginViewModel = hiltViewModel()
+) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -38,9 +44,13 @@ fun LoginScreen(navController: NavController) {
     var loginError by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    // Initialize the use case (domain layer)
-    val authRepository = AuthRepositoryImpl(RetrofitClient.authApiService)
-    val loginUseCase = LoginUseCase(authRepository)
+    // Ensure cleanup when composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cancel all coroutines when screen is destroyed
+            scope.coroutineContext.cancelChildren()
+        }
+    }
 
     // Regex patterns
     val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
@@ -68,16 +78,20 @@ fun LoginScreen(navController: NavController) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // App Title
-            Text(
+        if (isLoading) {
+            // Show skeleton loading screen
+            LoginScreenLoading()
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // App Title
+                Text(
                 text = "VidPlay",
                 style = MaterialTheme.typography.displaySmall,
                 color = MaterialTheme.colorScheme.primary,
@@ -113,8 +127,7 @@ fun LoginScreen(navController: NavController) {
                     imeAction = ImeAction.Next
                 ),
                 singleLine = true,
-                isError = emailError.isNotEmpty(),
-                enabled = !isLoading
+                isError = emailError.isNotEmpty()
             )
 
             // Email Error Message
@@ -145,8 +158,7 @@ fun LoginScreen(navController: NavController) {
                 },
                 trailingIcon = {
                     IconButton(
-                        onClick = { passwordVisible = !passwordVisible },
-                        enabled = !isLoading
+                        onClick = { passwordVisible = !passwordVisible }
                     ) {
                         Icon(
                             imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -163,8 +175,7 @@ fun LoginScreen(navController: NavController) {
                     imeAction = ImeAction.Done
                 ),
                 singleLine = true,
-                isError = passwordError.isNotEmpty(),
-                enabled = !isLoading
+                isError = passwordError.isNotEmpty()
             )
 
             // Password Error Message
@@ -200,8 +211,7 @@ fun LoginScreen(navController: NavController) {
                 },
                 modifier = Modifier
                     .align(Alignment.End)
-                    .padding(bottom = 24.dp),
-                enabled = !isLoading
+                    .padding(bottom = 24.dp)
             ) {
                 Text(
                     "Forgot Password?",
@@ -220,8 +230,8 @@ fun LoginScreen(navController: NavController) {
                     if (emailError.isEmpty() && passwordError.isEmpty()) {
                         isLoading = true
                         scope.launch {
-                            // Call the domain layer use case
-                            val result = loginUseCase(email = email, password = password)
+                            // Call the domain layer use case via viewModel
+                            val result = viewModel.login(email = email, password = password)
                             
                             when (result) {
                                 is Resource.Success -> {
@@ -244,18 +254,9 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp)
-                    .padding(bottom = 16.dp),
-                enabled = !isLoading
+                    .padding(bottom = 16.dp)
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Login")
-                }
+                Text("Login")
             }
 
             // Divider
@@ -280,8 +281,7 @@ fun LoginScreen(navController: NavController) {
                     navController.navigate(Routes.REGISTER) {
                         popUpTo(Routes.LOGIN) { inclusive = false }
                     }
-                },
-                enabled = !isLoading
+                }
             ) {
                 Text(
                     "Create a New Account",
@@ -289,6 +289,15 @@ fun LoginScreen(navController: NavController) {
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
+            }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    VidPlayTheme {
+        LoginScreen(navController = rememberNavController())
     }
 }

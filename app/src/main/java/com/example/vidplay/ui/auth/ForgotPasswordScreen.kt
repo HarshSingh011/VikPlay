@@ -14,18 +14,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
-import com.example.vidplay.data.repository.AuthRepositoryImpl
-import com.example.vidplay.data.source.remote.RetrofitClient
-import com.example.vidplay.domain.usecase.ResetPasswordUseCase
+import com.example.vidplay.presentation.viewmodel.ForgotPasswordViewModel
+import com.example.vidplay.ui.theme.VidPlayTheme
 import com.example.vidplay.util.PasswordValidator
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelChildren
 
 @Composable
-fun ForgotPasswordScreen(navController: NavController, email: String) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    email: String,
+    viewModel: ForgotPasswordViewModel = hiltViewModel()
+) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var newPasswordVisible by remember { mutableStateOf(false) }
@@ -37,53 +44,70 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Initialize the use case (domain layer)
-    val authRepository = AuthRepositoryImpl(RetrofitClient.authApiService)
-    val resetPasswordUseCase = ResetPasswordUseCase(authRepository)
+    // Cleanup function to cancel scope when back is pressed or screen is destroyed
+    val onBackPressed = {
+        if (isLoading) {
+            // Cancel all ongoing coroutines in this scope
+            scope.coroutineContext.cancelChildren()
+            isLoading = false
+        }
+        navController.popBackStack()
+    }
+
+    // Ensure cleanup when composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cancel all coroutines when screen is destroyed
+            scope.coroutineContext.cancelChildren()
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Back Button
-            Row(
+        if (isLoading) {
+            // Show skeleton loading screen
+            ForgotPasswordScreenLoading()
+        } else {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
             ) {
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    enabled = !isLoading
+                // Back Button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(
+                        onClick = { onBackPressed() }
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
-            // Title
-            Text(
-                text = "Reset Password",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 8.dp)
-            )
+                // Title
+                Text(
+                    text = "Reset Password",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 8.dp)
+                )
 
-            // Subtitle with email
-            Text(
-                text = "Create a new password for\n$email",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
+                // Subtitle with email
+                Text(
+                    text = "Create a new password for\n$email",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
                     .align(Alignment.Start)
                     .padding(bottom = 32.dp)
             )
@@ -106,7 +130,7 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     Icon(Icons.Default.Lock, contentDescription = "Password")
                 },
                 trailingIcon = {
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible } ) {
                         Icon(
                             imageVector = if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = "Toggle password visibility"
@@ -119,8 +143,7 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     .fillMaxWidth()
                     .padding(bottom = 4.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                enabled = !isLoading
+                singleLine = true
             )
 
             // Password error message
@@ -151,7 +174,7 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
                 },
                 trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible } ) {
                         Icon(
                             imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = "Toggle password visibility"
@@ -197,7 +220,7 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
 
                     isLoading = true
                     scope.launch {
-                        val result = resetPasswordUseCase(email, newPassword, confirmPassword)
+                        val result = viewModel.resetPassword(email, newPassword)
                         when (result) {
                             is Resource.Success -> {
                                 // Navigate to login on success
@@ -225,18 +248,9 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                 enabled = newPassword.isNotEmpty() && 
                          confirmPassword.isNotEmpty() && 
                          passwordsMatch && 
-                         passwordError.isEmpty() &&
-                         !isLoading
+                         passwordError.isEmpty()
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Reset Password")
-                }
+                Text("Reset Password")
             }
 
             // Password strength indicator
@@ -267,6 +281,7 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
             }
+            }
         }
 
         // Snackbar for error messages
@@ -276,6 +291,14 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ForgotPasswordScreenPreview() {
+    VidPlayTheme {
+        ForgotPasswordScreen(navController = rememberNavController(), email = "test@example.com")
     }
 }
 

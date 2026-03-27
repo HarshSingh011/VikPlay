@@ -24,6 +24,7 @@ import com.example.vidplay.domain.model.ResetPasswordData
 import com.example.vidplay.domain.repository.AuthRepository
 import com.example.vidplay.util.Resource
 import com.google.gson.Gson
+import javax.inject.Inject
 
 /**
  * Concrete implementation of [AuthRepository].
@@ -32,7 +33,7 @@ import com.google.gson.Gson
  * All network calls are wrapped in try/catch so the ViewModel always
  * receives a typed [Resource] and never an unhandled exception.
  */
-class AuthRepositoryImpl(
+class AuthRepositoryImpl @Inject constructor(
     private val apiService: AuthApiService
 ) : AuthRepository {
 

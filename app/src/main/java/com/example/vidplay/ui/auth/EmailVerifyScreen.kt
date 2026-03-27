@@ -11,26 +11,46 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
-import com.example.vidplay.data.repository.AuthRepositoryImpl
-import com.example.vidplay.data.source.remote.RetrofitClient
-import com.example.vidplay.domain.usecase.ForgotPasswordUseCase
+import com.example.vidplay.presentation.viewmodel.EmailVerifyViewModel
+import com.example.vidplay.ui.theme.VidPlayTheme
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelChildren
 
 @Composable
-fun EmailVerifyScreen(navController: NavController) {
+fun EmailVerifyScreen(
+    navController: NavController,
+    viewModel: EmailVerifyViewModel = hiltViewModel()
+) {
     var email by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var emailError by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Initialize the use case (domain layer)
-    val authRepository = AuthRepositoryImpl(RetrofitClient.authApiService)
-    val forgotPasswordUseCase = ForgotPasswordUseCase(authRepository)
+    // Cleanup function to cancel scope when back is pressed or screen is destroyed
+    val onBackPressed = {
+        if (isLoading) {
+            // Cancel all ongoing coroutines in this scope
+            scope.coroutineContext.cancelChildren()
+            isLoading = false
+        }
+        navController.popBackStack()
+    }
+
+    // Ensure cleanup when composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cancel all coroutines when screen is destroyed
+            scope.coroutineContext.cancelChildren()
+        }
+    }
 
     // Regex pattern for email validation
     val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
@@ -48,36 +68,39 @@ fun EmailVerifyScreen(navController: NavController) {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Back Button at Top
-            Row(
+        if (isLoading) {
+            // Show skeleton loading screen
+            EmailVerifyScreenLoading()
+        } else {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                IconButton(
-                    onClick = { navController.popBackStack() },
-                    enabled = !isLoading
+                // Back Button at Top
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(
+                        onClick = { onBackPressed() }
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
-            // Title
-            Text(
-                text = "Reset Password",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 8.dp)
-            )
+                // Title
+                Text(
+                    text = "Reset Password",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 8.dp)
+                )
 
             // Subtitle
             Text(
@@ -106,8 +129,7 @@ fun EmailVerifyScreen(navController: NavController) {
                     .padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 singleLine = true,
-                isError = emailError.isNotEmpty(),
-                enabled = !isLoading
+                isError = emailError.isNotEmpty()
             )
 
             // Email Error Message
@@ -132,8 +154,8 @@ fun EmailVerifyScreen(navController: NavController) {
                     if (emailError.isEmpty()) {
                         isLoading = true
                         scope.launch {
-                            // Call the domain layer use case
-                            val result = forgotPasswordUseCase(email = email)
+                            // Call the domain layer use case via viewModel
+                            val result = viewModel.sendResetCode(email = email)
                             
                             when (result) {
                                 is Resource.Success -> {
@@ -160,17 +182,9 @@ fun EmailVerifyScreen(navController: NavController) {
                     .fillMaxWidth()
                     .height(48.dp)
                     .padding(bottom = 16.dp),
-                enabled = email.isNotEmpty() && !isLoading
+                enabled = email.isNotEmpty()
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Send Reset Code")
-                }
+                Text("Send Reset Code")
             }
 
             // Back to Login Link
@@ -188,11 +202,11 @@ fun EmailVerifyScreen(navController: NavController) {
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(Routes.EMAIL_VERIFY) { inclusive = true }
                         }
-                    },
-                    enabled = !isLoading
+                    }
                 ) {
                     Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
+            }
             }
         }
 
@@ -201,5 +215,13 @@ fun EmailVerifyScreen(navController: NavController) {
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun EmailVerifyScreenPreview() {
+    VidPlayTheme {
+        EmailVerifyScreen(navController = rememberNavController())
     }
 }

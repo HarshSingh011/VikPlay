@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -38,7 +40,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import com.example.vidplay.data.model.ChatMessage
 import com.example.vidplay.data.webrtc.WebRtcViewerManager
+import com.example.vidplay.ui.components.ChatPanel
 import com.example.vidplay.util.PreferenceHelper
 import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
@@ -69,14 +73,15 @@ fun ViewerStreamingScreen(
 ) {
     val context = LocalContext.current
     val token   = remember { PreferenceHelper(context).token }
+    val username = remember { PreferenceHelper(context).username }
 
     // ── State ─────────────────────────────────────────────────────────────────
     var viewerState   by remember { mutableStateOf(ViewerState.CONNECTING) }
     var errorMessage  by remember { mutableStateOf("") }
     var remoteTrack   by remember { mutableStateOf<VideoTrack?>(null) }
     var manager       by remember { mutableStateOf<WebRtcViewerManager?>(null) }
-    // Incrementing this key forces a fresh manager + WebSocket connection on retry
     var retryKey      by remember { mutableStateOf(0) }
+    var chatMessages  by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
 
     // ── Start / restart the viewer manager ───────────────────────────────────
     LaunchedEffect(streamCode, retryKey) {
@@ -114,156 +119,182 @@ fun ViewerStreamingScreen(
     }
 
     // ── Root container ────────────────────────────────────────────────────────
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-
-        // ── Remote video renderer — only shown while watching ─────────────────
-        if (viewerState == ViewerState.WATCHING) {
-            val currentManager = manager
-            val currentTrack   = remoteTrack
-            if (currentManager != null && currentTrack != null) {
-                var sinkAdded by remember { mutableStateOf(false) }
-                AndroidView(
-                    factory = { ctx ->
-                        SurfaceViewRenderer(ctx).apply {
-                            init(currentManager.eglBase.eglBaseContext, null)
-                            setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FIT)
-                            setEnableHardwareScaler(true)
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                    update = { renderer ->
-                        if (!sinkAdded) {
-                            currentTrack.addSink(renderer)
-                            sinkAdded = true
-                        }
-                    }
+        // ── Top bar: back button + title + LIVE badge ─────────────────────────
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Black.copy(alpha = 0.55f))
+                .padding(horizontal = 4.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { navController.popBackStack() }) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color.White
                 )
+            }
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = streamTitle.ifBlank { streamCode },
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                modifier = Modifier.weight(1f)
+            )
+            if (viewerState == ViewerState.WATCHING) {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFFE53935), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "LIVE",
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
             }
         }
 
-        // ── Top bar: back button + title + LIVE badge ─────────────────────────
-        Column(modifier = Modifier.fillMaxSize()) {
+        // ── Fixed size video + chat section ─────────────────────────────────
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // ── Fixed size video box (16:9 aspect ratio) ────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .background(Color.Black, RoundedCornerShape(8.dp))
+            ) {
+                if (viewerState == ViewerState.WATCHING) {
+                    val currentManager = manager
+                    val currentTrack = remoteTrack
+                    if (currentManager != null && currentTrack != null) {
+                        var sinkAdded by remember { mutableStateOf(false) }
+                        AndroidView(
+                            factory = { ctx ->
+                                SurfaceViewRenderer(ctx).apply {
+                                    init(currentManager.eglBase.eglBaseContext, null)
+                                    setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+                                    setEnableHardwareScaler(true)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                            update = { renderer ->
+                                if (!sinkAdded) {
+                                    currentTrack.addSink(renderer)
+                                    sinkAdded = true
+                                }
+                            }
+                        )
+                    }
+                } else {
+                    // Placeholder when not watching
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        when (viewerState) {
+                            ViewerState.CONNECTING -> {
+                                CircularProgressIndicator(color = Color.White)
+                                Spacer(Modifier.height(8.dp))
+                                Text("Connecting…", color = Color.White, fontSize = 14.sp)
+                            }
+                            ViewerState.STREAM_ENDED -> {
+                                Text("Stream Ended", color = Color.White, fontSize = 14.sp)
+                            }
+                            ViewerState.ERROR -> {
+                                Text("Error", color = Color(0xFFEF5350), fontSize = 14.sp)
+                            }
+                            else -> {}
+                        }
+                    }
+                }
+            }
+
+            // ── Chat panel ───────────────────────────────────────────────────
+            ChatPanel(
+                messages = chatMessages,
+                onSendMessage = { text ->
+                    // Send chat message via WebSocket
+                    val msg = ChatMessage(
+                        username = username,
+                        message = text,
+                        role = "viewer"
+                    )
+                    chatMessages = chatMessages + msg
+                    manager?.sendChatMessage(text)
+                },
+                username = username,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+            )
+        }
+
+        // ── Bottom action buttons (when watching) ────────────────────────────
+        if (viewerState == ViewerState.WATCHING) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color.Black.copy(alpha = 0.55f))
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = Color.White
-                    )
-                }
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = streamTitle.ifBlank { streamCode },
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                if (viewerState == ViewerState.WATCHING) {
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFFE53935), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = "LIVE",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Spacer(Modifier.width(8.dp))
+                Button(
+                    onClick = { manager?.sendGoLive() },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                ) {
+                    Text("Go Live", fontSize = 12.sp)
                 }
             }
         }
 
-        // ── Connecting / loading overlay ──────────────────────────────────────
-        if (viewerState == ViewerState.CONNECTING) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CircularProgressIndicator(color = Color.White)
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = "Connecting to stream…",
-                    color = Color.White,
-                    fontSize = 16.sp
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Waiting for broadcaster offer",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 13.sp
-                )
-            }
-        }
-
-        // ── Stream ended overlay ──────────────────────────────────────────────
-        if (viewerState == ViewerState.STREAM_ENDED) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = "Stream has ended",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = { navController.popBackStack() }) {
-                    Text("Go back")
-                }
-            }
-        }
-
-        // ── Error overlay ──────────────────────────────────────────────────────
+        // ── Error bottom section ────────────────────────────────────────────
         if (viewerState == ViewerState.ERROR) {
             Column(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Black.copy(alpha = 0.7f))
+                    .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = "Connection error",
-                    color = Color(0xFFEF5350),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = errorMessage,
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 14.sp,
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-                Spacer(Modifier.height(24.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(errorMessage, color = Color(0xFFEF5350), fontSize = 13.sp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     OutlinedButton(
-                        onClick  = { navController.popBackStack() },
-                        colors   = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                        onClick = { navController.popBackStack() },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text("Back", color = Color.White)
+                        Text("Back", fontSize = 12.sp)
                     }
                     Button(
-                        onClick = { retryKey++ }  // triggers LaunchedEffect restart
+                        onClick = { retryKey++ },
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.width(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Retry")
+                        Text("Retry", fontSize = 12.sp)
                     }
                 }
             }

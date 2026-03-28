@@ -30,17 +30,21 @@ import com.example.vidplay.presentation.viewmodel.LoginViewModel
 import com.example.vidplay.ui.theme.AuthTheme
 import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.Resource
+import com.example.vidplay.util.PreferenceHelper
+import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import com.example.vidplay.ui.components.CustomOutlinedTextField
+import android.util.Log
 
 @Composable
 fun LoginScreen(
     navController: NavController,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -234,8 +238,22 @@ fun LoginScreen(
                                     
                                     when (result) {
                                         is Resource.Success -> {
-                                            navController.navigate(Routes.LOCAL_STORAGE) {
-                                                popUpTo(Routes.LOGIN) { inclusive = true }
+                                            val token = result.data?.accessToken
+                                            if (token.isNullOrEmpty()) {
+                                                Log.e("LoginScreen", "Login returned empty token!")
+                                                loginError = "Login failed: No token received from server"
+                                                isLoading = false
+                                            } else {
+                                                // Save token and username to preferences
+                                                val extractedUsername = email.substringBefore("@")
+                                                val preferences = PreferenceHelper(context)
+                                                Log.d("LoginScreen", "Login success! Saving token: ${token.take(20)}...")
+                                                preferences.token = token
+                                                preferences.username = extractedUsername
+                                                Log.d("LoginScreen", "Token saved. Verify: ${preferences.token.take(20)}...")
+                                                navController.navigate(Routes.LOCAL_STORAGE) {
+                                                    popUpTo(Routes.LOGIN) { inclusive = true }
+                                                }
                                             }
                                         }
                                         is Resource.Error -> {

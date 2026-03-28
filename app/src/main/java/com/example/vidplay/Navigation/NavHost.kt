@@ -46,6 +46,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import com.example.vidplay.ui.music.NowPlayingBar
+import androidx.compose.ui.platform.LocalContext
+import com.example.vidplay.util.PreferenceHelper
+import android.util.Log
+import androidx.compose.runtime.collectAsState
 
 
 @Composable
@@ -56,6 +60,14 @@ fun MyAppNavHost(
     onVideoPlayerViewModelCreated: (VideoPlayerViewModel) -> Unit = {}
 ) {
     val streamViewModel: StreamViewModel = viewModel()
+    val context = LocalContext.current
+    
+    // Check if user is already logged in by checking saved token
+    val preferenceHelper = PreferenceHelper(context)
+    val isUserLoggedIn = preferenceHelper.token.isNotEmpty()
+    val startDestination = if (isUserLoggedIn) Routes.LOCAL_STORAGE else Routes.LOGIN
+    
+    Log.d("NavHost", "App Started - Token present: $isUserLoggedIn, Token: ${preferenceHelper.token.take(20)}...")
 
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route ?: ""
@@ -67,10 +79,13 @@ fun MyAppNavHost(
                      currentRoute.startsWith("otp") ||
                      currentRoute.startsWith("otpForgotPassword") ||
                      currentRoute.startsWith("forgotPassword")
+    
+    // Collect PIP mode state
+    val isInPipMode by pipHandler.isInPipMode.collectAsState()
 
     Scaffold(
         bottomBar = {
-            if (!isAuthRoute) {
+            if (!isAuthRoute && !isInPipMode) {
                 Column {
                     NowPlayingBar()
                     NavigationBar {
@@ -109,7 +124,7 @@ fun MyAppNavHost(
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            NavHost(navController = navController, startDestination = Routes.LOGIN) {
+            NavHost(navController = navController, startDestination = startDestination) {
                 // Auth Routes
                 composable(Routes.LOGIN) {
                     LoginScreen(navController = navController)

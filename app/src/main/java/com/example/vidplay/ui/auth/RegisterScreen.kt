@@ -26,10 +26,12 @@ import com.example.vidplay.presentation.viewmodel.RegisterViewModel
 import com.example.vidplay.ui.theme.AuthTheme
 import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.PasswordValidator
+import com.example.vidplay.util.PreferenceHelper
 import com.example.vidplay.util.Resource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
@@ -37,6 +39,7 @@ fun RegisterScreen(
     navController: NavController,
     viewModel: RegisterViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -303,6 +306,8 @@ fun RegisterScreen(
 
                             when (result) {
                                 is Resource.Success -> {
+                                    // Save username to preferences
+                                    PreferenceHelper(context).username = username
                                     // Navigate to OTP screen on successful registration with flowType
                                     navController.navigate(
                                         Routes.OTP.replace(

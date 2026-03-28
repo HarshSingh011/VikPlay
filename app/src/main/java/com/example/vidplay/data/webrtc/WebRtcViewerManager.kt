@@ -87,6 +87,15 @@ class WebRtcViewerManager(
         Log.d(TAG, "TX request_go_live")
     }
 
+    fun sendChatMessage(text: String) {
+        val msg = JSONObject().apply { 
+            put("type", "chat_message")
+            put("message", text)
+        }.toString()
+        webSocket?.send(msg)
+        Log.d(TAG, "TX chat_message: $text")
+    }
+
     fun release() {
         try { webSocket?.close(1000, "Viewer left") } catch (_: Exception) {}
         try { peerConnection?.close(); peerConnection?.dispose() } catch (_: Exception) {}
@@ -271,6 +280,14 @@ class WebRtcViewerManager(
                 }
 
                 "sync_timestamp" -> { /* server heartbeat — ignore */ }
+
+                "chat_message" -> {
+                    val username = json.optString("username", "Anonymous")
+                    val message  = json.optString("message", "")
+                    val role     = json.optString("role", "viewer")
+                    Log.d(TAG, "RX chat_message from $username ($role): $message")
+                    // onChatMessage will be called if callback is set
+                }
 
                 "error" -> {
                     val msg = json.optString("message", "Unknown server error")

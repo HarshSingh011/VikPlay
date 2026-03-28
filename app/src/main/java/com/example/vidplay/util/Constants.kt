@@ -10,4 +10,7 @@ object Constants {
 
     /** Key used to persist the bearer token */
     const val KEY_TOKEN = "saved_token"
+
+    /** Key used to persist the username */
+    const val KEY_USERNAME = "saved_username"
 }

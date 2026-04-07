@@ -9,6 +9,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
@@ -33,26 +34,50 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+// Discord-like dark color scheme for auth screens
+private val DiscordColorScheme = darkColorScheme(
+    primary = DiscordBlueDark,
+    onPrimary = Color.White,
+    secondary = DiscordLightBlue,
+    onSecondary = Color.White,
+    tertiary = DiscordBlue,
+    onTertiary = Color.White,
+    background = DiscordBlack,
+    onBackground = DiscordTextPrimary,
+    surface = DiscordDarkGray,
+    onSurface = DiscordTextPrimary,
+    surfaceVariant = Color(0xFF383B43),
+    onSurfaceVariant = DiscordTextInput,
+    outline = DiscordBlue,
+    outlineVariant = DiscordTextSecondary,
+    error = Color(0xFFED4245),
+    onError = Color.White
+)
+
 @Composable
 fun VidPlayTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
+    // Always use Discord color scheme - ignore system settings
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = DiscordColorScheme,
         typography = Typography,
+        shapes = Shapes,
+        content = content
+    )
+}
+
+@Composable
+fun AuthTheme(
+    content: @Composable () -> Unit
+) {
+    MaterialTheme(
+        colorScheme = DiscordColorScheme,
+        typography = Typography,
+        shapes = Shapes,
         content = content
     )
 }

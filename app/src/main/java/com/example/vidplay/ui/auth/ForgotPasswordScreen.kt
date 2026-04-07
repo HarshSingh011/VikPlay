@@ -8,82 +8,133 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
+import com.example.vidplay.presentation.viewmodel.ForgotPasswordViewModel
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
+import com.example.vidplay.util.PasswordValidator
+import com.example.vidplay.util.Resource
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancelChildren
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 @Composable
-fun ForgotPasswordScreen(navController: NavController, email: String) {
+fun ForgotPasswordScreen(
+    navController: NavController,
+    email: String,
+    viewModel: ForgotPasswordViewModel = hiltViewModel()
+) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var newPasswordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var passwordsMatch by remember { mutableStateOf(true) }
+    var passwordError by remember { mutableStateOf("") }
+    var resetError by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Cleanup function to cancel scope when back is pressed or screen is destroyed
+    val onBackPressed = {
+        if (isLoading) {
+            // Cancel all ongoing coroutines in this scope
+            scope.coroutineContext.cancelChildren()
+            isLoading = false
+        }
+        navController.popBackStack()
+    }
+
+    // Ensure cleanup when composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cancel all coroutines when screen is destroyed
+            scope.coroutineContext.cancelChildren()
+        }
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
-        ) {
-            // Back Button
-            Row(
+        if (isLoading) {
+            // Show skeleton loading screen
+            ForgotPasswordScreenLoading()
+        } else {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 24.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(24.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
             ) {
-                IconButton(
-                    onClick = { navController.popBackStack() }
+                // Back Button
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    IconButton(
+                        onClick = { onBackPressed() }
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
-            // Title
-            Text(
-                text = "Reset Password",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 8.dp)
-            )
+                // Title
+                Text(
+                    text = "Reset Password",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 8.dp)
+                )
 
-            // Subtitle with email
-            Text(
-                text = "Create a new password for\n$email",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
+                // Subtitle with email
+                Text(
+                    text = "Create a new password for\n$email",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
                     .align(Alignment.Start)
                     .padding(bottom = 32.dp)
             )
 
             // New Password Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = newPassword,
-                onValueChange = { newPassword = it },
-                label = { Text("New Password") },
+                onValueChange = {
+                    newPassword = it
+                    passwordError = if (it.isNotEmpty() && !PasswordValidator.isValidPassword(it)) {
+                        PasswordValidator.getPasswordErrorMessage(it)
+                    } else {
+                        ""
+                    }
+                    resetError = ""
+                },
                 placeholder = { Text("Enter new password") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = "Password")
                 },
                 trailingIcon = {
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible } ) {
                         Icon(
                             imageVector = if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = "Toggle password visibility"
@@ -91,27 +142,38 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     }
                 },
                 visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
+                isError = passwordError.isNotEmpty(),
+                modifier = Modifier.padding(bottom = 4.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true
             )
 
+            // Password error message
+            if (passwordError.isNotEmpty()) {
+                Text(
+                    passwordError,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 16.dp)
+                )
+            }
+
             // Confirm Password Field
-            OutlinedTextField(
+            CustomOutlinedTextField(
                 value = confirmPassword,
                 onValueChange = {
                     confirmPassword = it
                     passwordsMatch = newPassword == it
+                    resetError = ""
                 },
-                label = { Text("Confirm Password") },
                 placeholder = { Text("Confirm new password") },
                 leadingIcon = {
                     Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
                 },
                 trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible } ) {
                         Icon(
                             imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
                             contentDescription = "Toggle password visibility"
@@ -120,11 +182,10 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                 },
                 visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 isError = !passwordsMatch && confirmPassword.isNotEmpty(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
+                modifier = Modifier.padding(bottom = 8.dp),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
+                singleLine = true,
+                enabled = !isLoading
             )
 
             // Error message for password mismatch
@@ -137,37 +198,59 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                         .align(Alignment.Start)
                         .padding(bottom = 24.dp)
                 )
-            } else {
-                Spacer(modifier = Modifier.height(24.dp))
             }
 
             // Reset Password Button
             Button(
                 onClick = {
+                    // Validate before making API call
+                    if (!PasswordValidator.isValidPassword(newPassword)) {
+                        passwordError = PasswordValidator.getPasswordErrorMessage(newPassword)
+                        return@Button
+                    }
+
+                    if (newPassword != confirmPassword) {
+                        return@Button
+                    }
+
                     isLoading = true
-                    // TODO: Handle password reset
-                    // After successful reset, navigate back to login
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                    scope.launch {
+                        val result = viewModel.resetPassword(email, newPassword, confirmPassword)
+                        when (result) {
+                            is Resource.Success -> {
+                                // Navigate to login on success
+                                navController.navigate(Routes.LOGIN) {
+                                    popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                                }
+                            }
+                            is Resource.Error -> {
+                                isLoading = false
+                                snackbarHostState.showSnackbar(
+                                    message = result.message,
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                            is Resource.Loading -> {
+                                // Already showing loading state
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
                     .padding(bottom = 16.dp),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
                 enabled = newPassword.isNotEmpty() && 
                          confirmPassword.isNotEmpty() && 
-                         passwordsMatch && !isLoading
+                         passwordsMatch && 
+                         passwordError.isEmpty()
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Reset Password")
-                }
+                Text("Reset Password")
             }
 
             // Password strength indicator
@@ -187,13 +270,93 @@ fun ForgotPasswordScreen(navController: NavController, email: String) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = {
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
-                    }
-                }) {
+                TextButton(
+                    onClick = {
+                        navController.navigate(Routes.LOGIN) {
+                            popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                        }
+                    },
+                    enabled = !isLoading
+                ) {
                     Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
+            }
+            }
+        }
+
+        // Snackbar for error messages
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
+    }
+}
+
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
+)
+@Composable
+fun ForgotPasswordScreenPreview() {
+    AuthTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Reset Password",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("New Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Enter new password", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedTextField(
+                value = "",
+                onValueChange = {},
+                label = { Text("Confirm Password", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                placeholder = { Text("Confirm password", color = DiscordTextInput) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(8.dp),
+                enabled = false,
+                textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
+            ) {
+                Text("Reset Password")
             }
         }
     }

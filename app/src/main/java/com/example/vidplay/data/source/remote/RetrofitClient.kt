@@ -19,6 +19,8 @@ object RetrofitClient {
                 else HttpLoggingInterceptor.Level.NONE
     }
 
+    private val urlLoggingInterceptor = ApiUrlLoggingInterceptor()
+
     val okHttpBuilder = OkHttpClient.Builder()
         .connectTimeout(90, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
@@ -26,6 +28,7 @@ object RetrofitClient {
     init {
         if (BuildConfig.DEBUG) {
             okHttpBuilder.addInterceptor(loggingInterceptor)
+            okHttpBuilder.addInterceptor(urlLoggingInterceptor)
         }
     }
 
@@ -39,5 +42,9 @@ object RetrofitClient {
 
     val streamApiService: StreamApiService by lazy {
         retrofit.create(StreamApiService::class.java)
+    }
+
+    val authApiService: AuthApiService by lazy {
+        retrofit.create(AuthApiService::class.java)
     }
 }

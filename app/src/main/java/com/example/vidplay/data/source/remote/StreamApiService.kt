@@ -20,28 +20,28 @@ import retrofit2.http.Query
 interface StreamApiService {
 
     /**
-     * GET streaming/streams/live
+     * GET api/streaming/streams/live
      * Returns a list of all currently live streams.
      */
-    @GET("streaming/streams/live")
+    @GET("api/streaming/streams/live")
     suspend fun getAllStreams(
         @Header("Authorization") token: String
     ): Response<List<StreamDto>>
 
     /**
-     * GET streaming/streams/history/me
+     * GET api/streaming/streams/history/me
      * Returns the authenticated user's personal stream history.
      */
-    @GET("streaming/streams/history/me")
+    @GET("api/streaming/streams/history/me")
     suspend fun getMyStreams(
         @Header("Authorization") token: String
     ): Response<List<MyStreamDto>>
 
     /**
-     * GET streaming/streams/search?q=...&live_only=true
+     * GET api/streaming/streams/search?q=...&live_only=true
      * Search streams by title/keyword.
      */
-    @GET("streaming/streams/search")
+    @GET("api/streaming/streams/search")
     suspend fun searchStreams(
         @Header("Authorization") token: String,
         @Query("q") query: String,
@@ -49,20 +49,20 @@ interface StreamApiService {
     ): Response<List<SearchStreamDto>>
 
     /**
-     * POST streaming/streams/start
+     * POST api/streaming/streams/start
      * Creates and starts a new live stream.
      */
-    @POST("streaming/streams/start")
+    @POST("api/streaming/streams/start")
     suspend fun startStream(
         @Header("Authorization") token: String,
         @Body body: StartStreamRequest
     ): Response<ActiveStreamDto>
 
     /**
-     * POST streaming/streams/end/{stream_code}
+     * POST api/streaming/streams/end/{stream_code}
      * Ends an active live stream.
      */
-    @POST("streaming/streams/end/{stream_code}")
+    @POST("api/streaming/streams/end/{stream_code}")
     suspend fun endStream(
         @Header("Authorization") token: String,
         @Path("stream_code") streamCode: String

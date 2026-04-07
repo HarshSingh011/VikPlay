@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.graphics.Color
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 
 /**
  * Dialog to collect details for starting a stream.
@@ -75,17 +76,17 @@ fun StartStreamDialog(
 		title = { Text("Start New Stream") },
 		text = {
 			Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-				OutlinedTextField(
+				CustomOutlinedTextField(
 					value = title,
 					onValueChange = { title = it },
-					label = { Text("Title") },
+					placeholder = { Text("Title") },
 					modifier = Modifier.fillMaxWidth()
 				)
 
-				OutlinedTextField(
+				CustomOutlinedTextField(
 					value = description,
 					onValueChange = { description = it },
-					label = { Text("Description") },
+					placeholder = { Text("Description") },
 					modifier = Modifier.fillMaxWidth()
 				)
 

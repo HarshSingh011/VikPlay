@@ -9,52 +9,107 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import com.example.vidplay.Navigation.Routes
+import com.example.vidplay.presentation.viewmodel.OtpViewModel
+import com.example.vidplay.ui.theme.AuthTheme
+import com.example.vidplay.ui.theme.DiscordTextInput
+import com.example.vidplay.util.Resource
+import kotlinx.coroutines.launch
+import androidx.compose.ui.graphics.Color
+import kotlinx.coroutines.cancelChildren
+import androidx.compose.foundation.shape.RoundedCornerShape
 
+/**
+ * OTP Verification Screen that handles both registration and forgot password flows
+ * @param navController Navigation controller
+ * @param email User email address
+ * @param flowType "registration" or "forgotPassword" - determines which API to call and where to navigate
+ */
 @Composable
-fun OtpScreen(navController: NavController, email: String) {
+fun OtpScreen(
+    navController: NavController,
+    email: String,
+    flowType: String = "registration",
+    viewModel: OtpViewModel = hiltViewModel()
+) {
     val focusRequesters = List(6) { FocusRequester() }
-    val focusManager = LocalFocusManager.current
     var otpValues by remember { mutableStateOf(listOf("", "", "", "", "", "")) }
     var isLoading by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+
+    // Cleanup function to cancel scope when back is pressed or screen is destroyed
+    val onBackPressed = {
+        if (isLoading) {
+            // Cancel all ongoing coroutines in this scope
+            scope.coroutineContext.cancelChildren()
+            isLoading = false
+        }
+        navController.popBackStack()
+    }
+
+    // Ensure cleanup when composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            // Cancel all coroutines when screen is destroyed
+            scope.coroutineContext.cancelChildren()
+        }
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Determine flow type based on route parameter
+    val isRegistrationFlow = flowType == "registration"
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Back Button at Top
-            Row(
+        if (isLoading) {
+            // Show skeleton loading screen
+            OtpScreenLoading()
+        } else {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                // Back Button at Top
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { onBackPressed() }
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
                 }
-            }
 
             // Title
             Text(
@@ -84,31 +139,52 @@ fun OtpScreen(navController: NavController, email: String) {
                     OtpTextField(
                         value = otpValues[index],
                         onValueChange = { newValue ->
-                            if (newValue.length <= 1 && newValue.all { it.isDigit() }) {
-                                val updatedValues = otpValues.toMutableList()
-                                updatedValues[index] = newValue
-
-                                // Move to next field if a digit is entered
-                                if (newValue.isNotEmpty() && index < 5) {
-                                    focusRequesters[index + 1].requestFocus()
+                            val updatedValues = otpValues.toMutableList()
+                            
+                            when {
+                                // User typed a digit when field already has a value
+                                newValue.length > 1 && otpValues[index].isNotEmpty() -> {
+                                    // Field already has value, put new digit in next empty field
+                                    if (index < 5) {
+                                        updatedValues[index + 1] = newValue.last().toString()
+                                        otpValues = updatedValues
+                                        focusRequesters[index + 1].requestFocus()
+                                    }
+                                    // Don't update current field - keep it as is by not setting it
                                 }
-
-                                otpValues = updatedValues
+                                // User typed a digit in empty field
+                                newValue.length == 1 && newValue.all { it.isDigit() } -> {
+                                    updatedValues[index] = newValue
+                                    otpValues = updatedValues
+                                    // Auto-move to next field
+                                    if (index < 5) {
+                                        focusRequesters[index + 1].requestFocus()
+                                    }
+                                }
+                                // User pressed backspace and field had a value
+                                newValue.isEmpty() && otpValues[index].isNotEmpty() -> {
+                                    updatedValues[index] = ""
+                                    otpValues = updatedValues
+                                    // Move focus to previous field
+                                    if (index > 0) {
+                                        focusRequesters[index - 1].requestFocus()
+                                    }
+                                }
                             }
                         },
-                        onBackspace = {
-                            if (otpValues[index].isEmpty() && index > 0) {
-                                focusRequesters[index - 1].requestFocus()
+                        onBackspaceOnEmpty = {
+                            // Handle backspace when field is already empty
+                            if (index > 0) {
                                 val updatedValues = otpValues.toMutableList()
+                                // Clear previous field
                                 updatedValues[index - 1] = ""
                                 otpValues = updatedValues
-                            } else {
-                                val updatedValues = otpValues.toMutableList()
-                                updatedValues[index] = ""
-                                otpValues = updatedValues
+                                // Move focus to previous field
+                                focusRequesters[index - 1].requestFocus()
                             }
                         },
                         focusRequester = focusRequesters[index],
+                        enabled = true,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -119,27 +195,54 @@ fun OtpScreen(navController: NavController, email: String) {
                 onClick = {
                     isLoading = true
                     val otp = otpValues.joinToString("")
-                    // TODO: Handle OTP verification
-                    // Navigate to main screen after successful verification
-                    navController.navigate(Routes.LOCAL_STORAGE) {
-                        popUpTo(Routes.OTP.replace("{email}", email)) { inclusive = true }
+                    
+                    scope.launch {
+                        val result = if (isRegistrationFlow) {
+                            // Registration flow: verify registration OTP via viewModel
+                            viewModel.verifyRegistrationOtp(email = email, otp = otp)
+                        } else {
+                            // Forgot password flow: verify forgot password OTP via viewModel
+                            viewModel.verifyForgotPasswordOtp(email = email, otp = otp)
+                        }
+                        
+                        when (result) {
+                            is Resource.Success -> {
+                                // Navigate based on flow type
+                                if (isRegistrationFlow) {
+                                    // Registration flow: navigate to LOGIN
+                                    navController.navigate(Routes.LOGIN) {
+                                        popUpTo(Routes.OTP.replace("{email}", email)) { inclusive = true }
+                                    }
+                                } else {
+                                    // Forgot password flow: navigate to FORGOT_PASSWORD
+                                    navController.navigate(Routes.FORGOT_PASSWORD.replace("{email}", email)) {
+                                        popUpTo(Routes.OTP_FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                                    }
+                                }
+                            }
+                            is Resource.Error -> {
+                                isLoading = false
+                                // Show error in snackbar
+                                snackbarHostState.showSnackbar(result.message)
+                            }
+                            is Resource.Loading -> {
+                                // Already handled by isLoading flag
+                            }
+                        }
                     }
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(56.dp)
                     .padding(bottom = 16.dp),
-                enabled = otpValues.all { it.isNotEmpty() } && !isLoading
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ),
+                enabled = otpValues.all { it.isNotEmpty() }
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text("Verify")
-                }
+                Text("Verify")
             }
 
             // Resend Code
@@ -152,11 +255,20 @@ fun OtpScreen(navController: NavController, email: String) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = { /* TODO: Handle resend */ }) {
+                TextButton(
+                    onClick = { /* TODO: Handle resend */ }
+                ) {
                     Text("Resend", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
+        }
+
+        // Snackbar Host
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier.align(Alignment.BottomCenter)
+        )
     }
 }
 
@@ -164,25 +276,38 @@ fun OtpScreen(navController: NavController, email: String) {
 private fun OtpTextField(
     value: String,
     onValueChange: (String) -> Unit,
-    onBackspace: () -> Unit,
+    onBackspaceOnEmpty: () -> Unit,
     focusRequester: FocusRequester,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    // Create TextFieldValue with cursor at the end
+    val textFieldValue = TextFieldValue(
+        text = value,
+        selection = TextRange(value.length)
+    )
 
     BasicTextField(
-        value = value,
+        value = textFieldValue,
         onValueChange = { newValue ->
-            // Handle backspace
-            if (newValue.isEmpty() && value.isNotEmpty()) {
-                onBackspace()
-            } else {
-                onValueChange(newValue)
+            // Allow digit input and empty, pass through for parent to handle logic
+            if (newValue.text.isEmpty() || newValue.text.all { it.isDigit() }) {
+                onValueChange(newValue.text)
             }
         },
         modifier = modifier
             .size(56.dp)
             .focusRequester(focusRequester)
+            .onKeyEvent { keyEvent ->
+                // Detect backspace on empty field
+                if (keyEvent.key == Key.Backspace && value.isEmpty()) {
+                    onBackspaceOnEmpty()
+                    true
+                } else {
+                    false
+                }
+            }
             .border(
                 width = 2.dp,
                 color = if (value.isNotEmpty()) 
@@ -196,7 +321,7 @@ private fun OtpTextField(
                 shape = MaterialTheme.shapes.medium
             ),
         singleLine = true,
-        textStyle = androidx.compose.ui.text.TextStyle(
+        textStyle = TextStyle(
             fontSize = 24.sp,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurface
@@ -204,6 +329,7 @@ private fun OtpTextField(
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         interactionSource = interactionSource,
+        enabled = enabled,
         decorationBox = { innerTextField ->
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -213,4 +339,67 @@ private fun OtpTextField(
             }
         }
     )
+}
+
+@Preview(
+    showBackground = true,
+    showSystemUi = true,
+    device = "id:pixel_5",
+    backgroundColor = 0xFF1E1E2E
+)
+@Composable
+fun OtpScreenPreview() {
+    AuthTheme {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                "Enter OTP",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(32.dp))
+            Text("6-digit code", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Spacer(modifier = Modifier.height(24.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
+            ) {
+                repeat(6) {
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surface,
+                                shape = MaterialTheme.shapes.small
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("*", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(32.dp))
+            Button(
+                onClick = {},
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = false,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary,
+                    disabledContentColor = Color.White
+                )
+            ) {
+                Text("Verify")
+            }
+        }
+    }
 }

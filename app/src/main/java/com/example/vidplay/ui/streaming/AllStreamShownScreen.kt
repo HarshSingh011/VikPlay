@@ -28,13 +28,13 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +45,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.vidplay.presentation.state.StartStreamUiState
+import com.example.vidplay.ui.components.CustomOutlinedTextField
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -131,80 +132,97 @@ fun AllStreamShownScreen(
     Scaffold { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 0.dp)) {
-                val selectedColor   = Color(0xFF2196F3)
-                val unselectedColor = Color(0xFFEEEEEE)
-
-
-            OutlinedTextField(
+                CustomOutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.onSearchQueryChanged(it) },
+                placeholder = { Text("Search streams") },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color(0xFFFFFFFF)),
-                shape = RoundedCornerShape(24.dp),
-                label = { Text("Search streams") },
+                    .fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
-                    imeAction = ImeAction.Search,
                     keyboardType = KeyboardType.Text,
                     capitalization = KeyboardCapitalization.None,
                     autoCorrect = false
-                ),
-                keyboardActions = KeyboardActions(
-                    onSearch = {
-                        keyboardController?.hide()
-                        viewModel.searchStreams()
-                    }
                 )
             )
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                color = if (selectedTab == 0) selectedColor else Color.Transparent,
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .clickable {
-                                selectedTab = 0
-                                viewModel.onTabSelected(0)
-                            }
-                            .padding(vertical = 10.dp),
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val selectedTabColor = Color(0xFF404EED)  // Discord Blue
+                val unselectedTabColor = Color(0xFF2A2A3E)  // Dark gray
+                val selectedTextColor = Color.White
+                val unselectedTextColor = Color(0xFFB5BAC1)  // Discord light gray
+                
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = if (selectedTab == 0) selectedTabColor else unselectedTabColor,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable {
+                            selectedTab = 0
+                            viewModel.onTabSelected(0)
+                        }
+                        .padding(vertical = 14.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.LiveTv,
+                            contentDescription = "All Streams",
+                            modifier = Modifier.size(18.dp),
+                            tint = if (selectedTab == 0) selectedTextColor else unselectedTextColor
+                        )
+                        Spacer(Modifier.width(6.dp))
                         Text(
                             text = "All Streams",
-                            color = if (selectedTab == 0) Color.White else Color.Black
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .background(
-                                color = if (selectedTab == 1) selectedColor else Color.Transparent,
-                                shape = RoundedCornerShape(24.dp)
-                            )
-                            .clickable {
-                                selectedTab = 1
-                                viewModel.onTabSelected(1)
-                            }
-                            .padding(vertical = 10.dp),
-                    ) {
-                        Text(
-                            text = "My Streams",
-                            color = if (selectedTab == 1) Color.White else Color.Black
+                            color = if (selectedTab == 0) selectedTextColor else unselectedTextColor,
+                            fontWeight = if (selectedTab == 0) FontWeight.SemiBold else FontWeight.Normal,
+                            fontSize = 14.sp
                         )
                     }
                 }
+
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            color = if (selectedTab == 1) selectedTabColor else unselectedTabColor,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        .clickable {
+                            selectedTab = 1
+                            viewModel.onTabSelected(1)
+                        }
+                        .padding(vertical = 14.dp),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VideoLibrary,
+                            contentDescription = "My Streams",
+                            modifier = Modifier.size(18.dp),
+                            tint = if (selectedTab == 1) selectedTextColor else unselectedTextColor
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = "My Streams",
+                            color = if (selectedTab == 1) selectedTextColor else unselectedTextColor,
+                            fontWeight = if (selectedTab == 1) FontWeight.SemiBold else FontWeight.Normal,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
 
             Spacer(Modifier.height(8.dp))
 
@@ -228,9 +246,17 @@ fun AllStreamShownScreen(
                         modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(text = sState.message, color = Color.Red)
+                        Text(text = "No stream found", color = Color(0xFFB5BAC1))
                         Spacer(Modifier.height(12.dp))
-                        Button(onClick = { viewModel.searchStreams() }) { Text("Retry") }
+                        Button(
+                            onClick = { viewModel.searchStreams() },
+                            modifier = Modifier.height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color(0xFF404EED),
+                                contentColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) { Text("Retry") }
                     }
                 }
                 // Idle or Empty → show the normal tab content
@@ -247,9 +273,17 @@ fun AllStreamShownScreen(
                                     modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(text = state.message, color = Color.Red)
+                                    Text(text = "No stream available", color = Color(0xFFB5BAC1))
                                     Spacer(Modifier.height(12.dp))
-                                    Button(onClick = { viewModel.fetchAllStreams() }) { Text("Retry") }
+                                    Button(
+                                        onClick = { viewModel.fetchAllStreams() },
+                                        modifier = Modifier.height(48.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF404EED),
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) { Text("Retry") }
                                 }
                             }
                             is StreamUiState.Success -> {
@@ -308,9 +342,17 @@ fun AllStreamShownScreen(
                                     modifier = Modifier.fillMaxSize().wrapContentSize(Alignment.Center),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(text = state.message, color = Color.Red)
+                                    Text(text = "No stream available", color = Color(0xFFB5BAC1))
                                     Spacer(Modifier.height(12.dp))
-                                    Button(onClick = { viewModel.fetchMyStreams() }) { Text("Retry") }
+                                    Button(
+                                        onClick = { viewModel.fetchMyStreams() },
+                                        modifier = Modifier.height(48.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF404EED),
+                                            contentColor = Color.White
+                                        ),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) { Text("Retry") }
                                 }
                             }
                             is MyStreamUiState.Success -> {
@@ -376,84 +418,131 @@ fun AllStreamShownScreen(
 fun MyStreamCard(item: MyStream) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors()
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2A2A3E)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Thumbnail or placeholder
-            if (item.thumbnailUrl != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(item.thumbnailUrl),
-                    contentDescription = "thumbnail",
-                    modifier = Modifier.fillMaxWidth().height(160.dp),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
-                        .background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = "No thumbnail",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color(0xFF9E9E9E)
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Title + live badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Column(modifier = Modifier.padding(0.dp)) {
+            // Thumbnail section
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
             ) {
-                Text(
-                    text = item.title,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    modifier = Modifier.weight(1f)
-                )
-                if (item.isLive) {
+                if (item.thumbnailUrl != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(item.thumbnailUrl),
+                        contentDescription = "thumbnail",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFFE53935), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .fillMaxSize()
+                            .background(Color(0xFF1E1E2E)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "LIVE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = "No thumbnail",
+                            modifier = Modifier.size(56.dp),
+                            tint = Color(0xFF404EED)
+                        )
+                    }
+                }
+
+                // Status badges
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (item.isLive) {
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFFE53935), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .background(Color.White, CircleShape)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text(text = "LIVE", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
 
-            if (item.description.isNotBlank()) {
-                Text(text = item.description, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-            }
+            // Content section
+            Column(modifier = Modifier.padding(12.dp)) {
+                // Title + live badge
+                Text(
+                    text = item.title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    maxLines = 2
+                )
 
-            Spacer(Modifier.height(6.dp))
-
-            // Dates + duration + max viewers
-            val startDate = item.startedAt.substringBefore("T")
-            val endDate   = item.endedAt?.substringBefore("T") ?: "ongoing"
-            val duration  = item.durationSeconds?.let {
-                val h = it / 3600; val m = (it % 3600) / 60; val s = it % 60
-                if (h > 0) "${h}h ${m}m" else "${m}m ${s}s"
-            } ?: "—"
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(text = "Started: $startDate", fontSize = 12.sp, color = Color(0xFF757575))
-                    Text(text = "Ended:   $endDate",   fontSize = 12.sp, color = Color(0xFF757575))
+                if (item.description.isNotBlank()) {
+                    Text(
+                        text = item.description,
+                        fontSize = 13.sp,
+                        color = Color(0xFFB5BAC1),
+                        modifier = Modifier.padding(top = 6.dp),
+                        maxLines = 2
+                    )
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(text = "Duration: $duration",                      fontSize = 12.sp, color = Color(0xFF757575))
-                    Text(text = "Peak viewers: ${formatCount(item.maxViewerCount)}", fontSize = 12.sp, color = Color(0xFF757575))
+
+                Spacer(Modifier.height(10.dp))
+
+                // Stream Stats
+                val startDate = item.startedAt.substringBefore("T")
+                val endDate = item.endedAt?.substringBefore("T") ?: "ongoing"
+                val duration = item.durationSeconds?.let {
+                    val h = it / 3600
+                    val m = (it % 3600) / 60
+                    val s = it % 60
+                    if (h > 0) "${h}h ${m}m" else "${m}m ${s}s"
+                } ?: "—"
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF1E1E2E), RoundedCornerShape(8.dp))
+                        .padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Started:", fontSize = 11.sp, color = Color(0xFF757575))
+                        Text(text = startDate, fontSize = 11.sp, color = Color(0xFFB5BAC1), fontWeight = FontWeight.SemiBold)
+                    }
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Duration:", fontSize = 11.sp, color = Color(0xFF757575))
+                        Text(text = duration, fontSize = 11.sp, color = Color(0xFFB5BAC1), fontWeight = FontWeight.SemiBold)
+                    }
+                    
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(text = "Peak Viewers:", fontSize = 11.sp, color = Color(0xFF757575))
+                        Text(
+                            text = formatCount(item.maxViewerCount),
+                            fontSize = 11.sp,
+                            color = Color(0xFF404EED),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
                 }
             }
         }
@@ -466,54 +555,123 @@ fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        colors = CardDefaults.cardColors()
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2A2A3E)
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            if (item.thumbnailUrl != null) {
-                Image(
-                    painter = rememberAsyncImagePainter(item.thumbnailUrl),
-                    contentDescription = "thumbnail",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
+        Column(modifier = Modifier.padding(0.dp)) {
+            // Thumbnail section
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+            ) {
+                if (item.thumbnailUrl != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(item.thumbnailUrl),
+                        contentDescription = "thumbnail",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFF1E1E2E)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Videocam,
+                            contentDescription = "No thumbnail",
+                            modifier = Modifier.size(56.dp),
+                            tint = Color(0xFF404EED)
+                        )
+                    }
+                }
+                
+                // Live badge overlay
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
-                        .background(Color(0xFFE0E0E0), RoundedCornerShape(4.dp)),
-                    contentAlignment = Alignment.Center
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .background(Color(0xFFE53935), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Videocam,
-                        contentDescription = "No thumbnail",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color(0xFF9E9E9E)
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(6.dp)
+                                .background(Color.White, CircleShape)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(text = "LIVE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
-            val startedParts = item.startedAt.split("T")
-            val date = startedParts.getOrNull(0) ?: item.startedAt
-            val time = startedParts.getOrNull(1)?.removeSuffix("Z") ?: ""
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = item.title)
-                    Text(text = item.description, modifier = Modifier.padding(top = 4.dp))
+            // Content section
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = item.title,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = Color.White,
+                    maxLines = 2
+                )
+                
+                if (item.description.isNotBlank()) {
+                    Text(
+                        text = item.description,
+                        fontSize = 13.sp,
+                        color = Color(0xFFB5BAC1),
+                        modifier = Modifier.padding(top = 6.dp),
+                        maxLines = 2
+                    )
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(text = formatCount(item.viewerCount))
-                    Text(text = "$date $time", modifier = Modifier.padding(top = 4.dp))
+                Spacer(Modifier.height(10.dp))
+
+                // Stats row
+                val startedParts = item.startedAt.split("T")
+                val date = startedParts.getOrNull(0) ?: item.startedAt
+                val time = startedParts.getOrNull(1)?.removeSuffix("Z") ?: ""
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .background(Color(0xFF1E1E2E), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.VideoLibrary,
+                            contentDescription = "Views",
+                            modifier = Modifier.size(14.dp),
+                            tint = Color(0xFF404EED)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = formatCount(item.viewerCount),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF404EED)
+                        )
+                    }
+
+                    Text(
+                        text = "$date",
+                        fontSize = 11.sp,
+                        color = Color(0xFF757575)
+                    )
                 }
             }
         }

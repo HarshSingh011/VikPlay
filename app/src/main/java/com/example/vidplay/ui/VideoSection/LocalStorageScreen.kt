@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -111,39 +112,38 @@ fun LocalStorageScreen(navController: NavController) {
         // ── Category LazyRow ──
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             itemsIndexed(categories) { index, category ->
                 val selected = index == selectedIndex
                 val bgColor = if (selected)
-                    MaterialTheme.colorScheme.primary
+                    Color(0xFF404EED)
                 else
-                    MaterialTheme.colorScheme.surfaceVariant
-
+                    Color(0xFF2A2A3E)
                 val contentColor = if (selected)
-                    MaterialTheme.colorScheme.onPrimary
+                    Color.White
                 else
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                    Color(0xFFB5BAC1)
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(bgColor)
                         .clickable {
                             selectedIndex = index
                             permissionTrigger++ // always re-ask if permission is still missing
                         }
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
                     Icon(
                         imageVector = category.icon,
                         contentDescription = category.label,
                         tint = contentColor,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(24.dp)
                     )
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(6.dp))
                     Text(
                         text = category.label,
                         color = contentColor,

@@ -1,6 +1,7 @@
 package com.example.vidplay.presentation.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.vidplay.data.repository.StreamRepositoryImpl
@@ -71,6 +72,12 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
+    // ------------------------------------------------------------------ //
+    // Data caching for diff comparison
+    // ------------------------------------------------------------------ //
+    private var cachedAllStreams: List<Stream> = emptyList()
+    private var cachedMyStreams: List<MyStream> = emptyList()
+
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
         // Clear results when user clears the text field
@@ -82,6 +89,7 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     // ------------------------------------------------------------------ //
 
     init {
+        Log.d("StreamViewModel", "Init block called, token=${prefHelper.token.take(20)}...")
         fetchAllStreams()
         fetchMyStreams()
     }
@@ -147,11 +155,33 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
 
     fun fetchAllStreams() {
         viewModelScope.launch {
-            _allStreamsState.value = StreamUiState.Loading
+            // Only show loading if we have no cached data
+            if (cachedAllStreams.isEmpty()) {
+                _allStreamsState.value = StreamUiState.Loading
+            }
             val token = prefHelper.token
+            Log.d("StreamViewModel", "fetchAllStreams called with token: ${token.take(20)}...")
             when (val result = getAllStreamsUseCase(token)) {
-                is Resource.Success -> _allStreamsState.value = StreamUiState.Success(result.data)
-                is Resource.Error   -> _allStreamsState.value = StreamUiState.Error(result.message)
+                is Resource.Success -> {
+                    Log.d("StreamViewModel", "fetchAllStreams success: ${result.data.size} streams")
+                    // Check if data has changed before updating UI
+                    if (result.data != cachedAllStreams) {
+                        Log.d("StreamViewModel", "All streams data changed, updating UI")
+                        cachedAllStreams = result.data
+                        if (result.data.isEmpty()) {
+                            _allStreamsState.value = StreamUiState.Success(emptyList())
+                        } else {
+                            _allStreamsState.value = StreamUiState.Success(result.data)
+                        }
+                    } else {
+                        Log.d("StreamViewModel", "All streams data unchanged, keeping previous UI state")
+                        // Keep the current state without updating
+                    }
+                }
+                is Resource.Error   -> {
+                    Log.e("StreamViewModel", "fetchAllStreams error: ${result.message}")
+                    _allStreamsState.value = StreamUiState.Error(result.message)
+                }
                 is Resource.Loading -> { /* handled by initial state */ }
             }
         }
@@ -159,11 +189,33 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
 
     fun fetchMyStreams() {
         viewModelScope.launch {
-            _myStreamsState.value = MyStreamUiState.Loading
+            // Only show loading if we have no cached data
+            if (cachedMyStreams.isEmpty()) {
+                _myStreamsState.value = MyStreamUiState.Loading
+            }
             val token = prefHelper.token
+            Log.d("StreamViewModel", "fetchMyStreams called with token: ${token.take(20)}...")
             when (val result = getMyStreamsUseCase(token)) {
-                is Resource.Success -> _myStreamsState.value = MyStreamUiState.Success(result.data)
-                is Resource.Error   -> _myStreamsState.value = MyStreamUiState.Error(result.message)
+                is Resource.Success -> {
+                    Log.d("StreamViewModel", "fetchMyStreams success: ${result.data.size} streams")
+                    // Check if data has changed before updating UI
+                    if (result.data != cachedMyStreams) {
+                        Log.d("StreamViewModel", "My streams data changed, updating UI")
+                        cachedMyStreams = result.data
+                        if (result.data.isEmpty()) {
+                            _myStreamsState.value = MyStreamUiState.Success(emptyList())
+                        } else {
+                            _myStreamsState.value = MyStreamUiState.Success(result.data)
+                        }
+                    } else {
+                        Log.d("StreamViewModel", "My streams data unchanged, keeping previous UI state")
+                        // Keep the current state without updating
+                    }
+                }
+                is Resource.Error   -> {
+                    Log.e("StreamViewModel", "fetchMyStreams error: ${result.message}")
+                    _myStreamsState.value = MyStreamUiState.Error(result.message)
+                }
                 is Resource.Loading -> { /* handled by initial state */ }
             }
         }

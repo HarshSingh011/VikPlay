@@ -10,10 +10,6 @@ data class ForgotPasswordResponse(
     val success: Boolean
 )
 
-/**
- * Extension function to convert DTO to domain model.
- * Separates data layer (DTOs) from domain layer (models).
- */
 fun ForgotPasswordResponse.toDomain(): ForgotPasswordData = ForgotPasswordData(
     message = message,
     success = success

@@ -29,15 +29,18 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.vidplay.presentation.viewmodel.VideoPlayerViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.LiveTv
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.layout.Box
@@ -51,7 +54,6 @@ import com.example.vidplay.util.PreferenceHelper
 import android.util.Log
 import androidx.compose.runtime.collectAsState
 
-
 @Composable
 fun MyAppNavHost(
     navController: NavHostController = rememberNavController(),
@@ -62,17 +64,15 @@ fun MyAppNavHost(
     val streamViewModel: StreamViewModel = viewModel()
     val context = LocalContext.current
     
-    // Check if user is already logged in by checking saved token
-    val preferenceHelper = PreferenceHelper(context)
-    val isUserLoggedIn = preferenceHelper.token.isNotEmpty()
-    val startDestination = if (isUserLoggedIn) Routes.LOCAL_STORAGE else Routes.LOGIN
     
-    Log.d("NavHost", "App Started - Token present: $isUserLoggedIn, Token: ${preferenceHelper.token.take(20)}...")
+    val preferenceHelper = PreferenceHelper(context)
+    val isUserLoggedIn = preferenceHelper.hasValidToken()
+    val startDestination = if (isUserLoggedIn) Routes.LOCAL_STORAGE else Routes.LOGIN
 
     val currentBackStack by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStack?.destination?.route ?: ""
     
-    // Check if current route is an auth route
+    
     val isAuthRoute = currentRoute == Routes.LOGIN || 
                      currentRoute == Routes.REGISTER || 
                      currentRoute == Routes.EMAIL_VERIFY ||
@@ -80,52 +80,84 @@ fun MyAppNavHost(
                      currentRoute.startsWith("otpForgotPassword") ||
                      currentRoute.startsWith("forgotPassword")
     
-    // Collect PIP mode state
+    
     val isInPipMode by pipHandler.isInPipMode.collectAsState()
 
+    LaunchedEffect(currentRoute) {
+        if (!preferenceHelper.hasValidToken() && !isAuthRoute) {
+            preferenceHelper.clearSession()
+            navController.navigate(Routes.LOGIN) {
+                popUpTo(0)
+            }
+        }
+    }
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         bottomBar = {
             if (!isAuthRoute && !isInPipMode) {
                 Column {
                     NowPlayingBar()
-                    NavigationBar {
-                    // Video tab
-                    NavigationBarItem(
-                        selected = currentRoute == Routes.LOCAL_STORAGE || currentRoute == Routes.PAGE1 || currentRoute.startsWith("videoPlayer"),
-                        onClick = {
-                            navController.navigate(Routes.LOCAL_STORAGE) { launchSingleTop = true }
-                        },
-                        icon = { Icon(Icons.Default.Videocam, contentDescription = "Video") },
-                        label = { Text("Video") }
-                    )
+                    NavigationBar(
+                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    ) {
+                        NavigationBarItem(
+                            selected = currentRoute == Routes.LOCAL_STORAGE || currentRoute == Routes.PAGE1 || currentRoute.startsWith("videoPlayer"),
+                            onClick = {
+                                navController.navigate(Routes.LOCAL_STORAGE) { launchSingleTop = true }
+                            },
+                            icon = { Icon(Icons.Default.Videocam, contentDescription = "Video") },
+                            label = { Text("Video") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            )
+                        )
 
-                    // Stream tab
-                    NavigationBarItem(
-                        selected = currentRoute == Routes.STREAMING,
-                        onClick = {
-                            navController.navigate(Routes.STREAMING) { launchSingleTop = true }
-                        },
-                        icon = { Icon(Icons.Default.LiveTv, contentDescription = "Stream") },
-                        label = { Text("Stream") }
-                    )
+                        NavigationBarItem(
+                            selected = currentRoute == Routes.STREAMING,
+                            onClick = {
+                                navController.navigate(Routes.STREAMING) { launchSingleTop = true }
+                            },
+                            icon = { Icon(Icons.Default.LiveTv, contentDescription = "Stream") },
+                            label = { Text("Stream") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            )
+                        )
 
-                    // Call tab
-                    NavigationBarItem(
-                        selected = currentRoute == Routes.CALL,
-                        onClick = {
-                            navController.navigate(Routes.CALL) { launchSingleTop = true }
-                        },
-                        icon = { Icon(Icons.Default.Call, contentDescription = "Call") },
-                        label = { Text("Call") }
-                    )
+                        NavigationBarItem(
+                            selected = currentRoute == Routes.CALL,
+                            onClick = {
+                                navController.navigate(Routes.CALL) { launchSingleTop = true }
+                            },
+                            icon = { Icon(Icons.Default.Call, contentDescription = "Call") },
+                            label = { Text("Call") },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.primary,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                            )
+                        )
+                    }
                 }
-                } // end Column wrapping NowPlayingBar + NavigationBar
             }
         }
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             NavHost(navController = navController, startDestination = startDestination) {
-                // Auth Routes
+                
                 composable(Routes.LOGIN) {
                     LoginScreen(navController = navController)
                 }
@@ -170,7 +202,7 @@ fun MyAppNavHost(
                     ForgotPasswordScreen(navController = navController, email = email)
                 }
                 
-                // Main App Routes
+                
                 composable("main") {
                     MainScreen(navController = navController)
                 }

@@ -83,7 +83,7 @@ fun TokenTakenPageScreen(navController: NavController = rememberNavController())
 				if (token.isNotEmpty()) {
 					PreferenceHelper(context).token = token
 					navController.navigate(Routes.STREAMING) {
-						// Clear the token page from back-stack so Back doesn't return to it
+						
 						popUpTo(Routes.TOKEN_PAGE) { inclusive = true }
 					}
 				}

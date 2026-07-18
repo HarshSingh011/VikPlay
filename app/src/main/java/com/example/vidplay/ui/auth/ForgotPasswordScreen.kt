@@ -49,20 +49,20 @@ fun ForgotPasswordScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Cleanup function to cancel scope when back is pressed or screen is destroyed
+    
     val onBackPressed = {
         if (isLoading) {
-            // Cancel all ongoing coroutines in this scope
+            
             scope.coroutineContext.cancelChildren()
             isLoading = false
         }
         navController.popBackStack()
     }
 
-    // Ensure cleanup when composable is disposed
+    
     DisposableEffect(Unit) {
         onDispose {
-            // Cancel all coroutines when screen is destroyed
+            
             scope.coroutineContext.cancelChildren()
         }
     }
@@ -73,224 +73,229 @@ fun ForgotPasswordScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         if (isLoading) {
-            // Show skeleton loading screen
             ForgotPasswordScreenLoading()
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
             ) {
-                // Back Button
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { onBackPressed() }
+                        onClick = { onBackPressed() },
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
 
-                // Title
-                Text(
-                    text = "Reset Password",
-                    style = MaterialTheme.typography.headlineMedium,
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 8.dp)
-                )
-
-                // Subtitle with email
-                Text(
-                    text = "Create a new password for\n$email",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                    .align(Alignment.Start)
-                    .padding(bottom = 32.dp)
-            )
-
-            // New Password Field
-            CustomOutlinedTextField(
-                value = newPassword,
-                onValueChange = {
-                    newPassword = it
-                    passwordError = if (it.isNotEmpty() && !PasswordValidator.isValidPassword(it)) {
-                        PasswordValidator.getPasswordErrorMessage(it)
-                    } else {
-                        ""
-                    }
-                    resetError = ""
-                },
-                placeholder = { Text("Enter new password") },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = "Password")
-                },
-                trailingIcon = {
-                    IconButton(onClick = { newPasswordVisible = !newPasswordVisible } ) {
-                        Icon(
-                            imageVector = if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility"
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Reset Password",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
                         )
-                    }
-                },
-                visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = passwordError.isNotEmpty(),
-                modifier = Modifier.padding(bottom = 4.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
-            )
 
-            // Password error message
-            if (passwordError.isNotEmpty()) {
-                Text(
-                    passwordError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp)
-                )
-            }
-
-            // Confirm Password Field
-            CustomOutlinedTextField(
-                value = confirmPassword,
-                onValueChange = {
-                    confirmPassword = it
-                    passwordsMatch = newPassword == it
-                    resetError = ""
-                },
-                placeholder = { Text("Confirm new password") },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
-                },
-                trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible } ) {
-                        Icon(
-                            imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility"
+                        Text(
+                            text = "Create a new password for\n$email",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 32.dp)
                         )
-                    }
-                },
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = !passwordsMatch && confirmPassword.isNotEmpty(),
-                modifier = Modifier.padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                enabled = !isLoading
-            )
 
-            // Error message for password mismatch
-            if (!passwordsMatch && confirmPassword.isNotEmpty()) {
-                Text(
-                    "Passwords don't match",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 24.dp)
-                )
-            }
-
-            // Reset Password Button
-            Button(
-                onClick = {
-                    // Validate before making API call
-                    if (!PasswordValidator.isValidPassword(newPassword)) {
-                        passwordError = PasswordValidator.getPasswordErrorMessage(newPassword)
-                        return@Button
-                    }
-
-                    if (newPassword != confirmPassword) {
-                        return@Button
-                    }
-
-                    isLoading = true
-                    scope.launch {
-                        val result = viewModel.resetPassword(email, newPassword, confirmPassword)
-                        when (result) {
-                            is Resource.Success -> {
-                                // Navigate to login on success
-                                navController.navigate(Routes.LOGIN) {
-                                    popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                        CustomOutlinedTextField(
+                            value = newPassword,
+                            onValueChange = {
+                                newPassword = it
+                                passwordError = if (it.isNotEmpty() && !PasswordValidator.isValidPassword(it)) {
+                                    PasswordValidator.getPasswordErrorMessage(it)
+                                } else {
+                                    ""
                                 }
-                            }
-                            is Resource.Error -> {
-                                isLoading = false
-                                snackbarHostState.showSnackbar(
-                                    message = result.message,
-                                    duration = SnackbarDuration.Short
+                                resetError = ""
+                            },
+                            placeholder = { Text("Enter new password") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = "Password")
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (newPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = "Toggle password visibility"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            isError = passwordError.isNotEmpty(),
+                            modifier = Modifier.padding(bottom = 4.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true
+                        )
+
+                        if (passwordError.isNotEmpty()) {
+                            Text(
+                                passwordError,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 16.dp)
+                            )
+                        }
+
+                        CustomOutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = {
+                                confirmPassword = it
+                                passwordsMatch = newPassword == it
+                                resetError = ""
+                            },
+                            placeholder = { Text("Confirm new password") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
+                            },
+                            trailingIcon = {
+                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = "Toggle password visibility"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            isError = !passwordsMatch && confirmPassword.isNotEmpty(),
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            enabled = !isLoading
+                        )
+
+                        if (!passwordsMatch && confirmPassword.isNotEmpty()) {
+                            Text(
+                                "Passwords don't match",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 24.dp)
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                if (!PasswordValidator.isValidPassword(newPassword)) {
+                                    passwordError = PasswordValidator.getPasswordErrorMessage(newPassword)
+                                    return@Button
+                                }
+
+                                if (newPassword != confirmPassword) {
+                                    return@Button
+                                }
+
+                                isLoading = true
+                                scope.launch {
+                                    val result = viewModel.resetPassword(email, newPassword, confirmPassword)
+                                    when (result) {
+                                        is Resource.Success -> {
+                                            navController.navigate(Routes.LOGIN) {
+                                                popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                                            }
+                                        }
+                                        is Resource.Error -> {
+                                            isLoading = false
+                                            snackbarHostState.showSnackbar(
+                                                message = result.message,
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                        is Resource.Loading -> {
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .padding(bottom = 16.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            ),
+                            enabled = newPassword.isNotEmpty() &&
+                                confirmPassword.isNotEmpty() &&
+                                passwordsMatch &&
+                                passwordError.isEmpty()
+                        ) {
+                            Text("Reset Password")
+                        }
+
+                        if (newPassword.isNotEmpty()) {
+                            PasswordStrengthIndicator(password = newPassword)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            Text(
+                                "Remember your password?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(
+                                onClick = {
+                                    navController.navigate(Routes.LOGIN) {
+                                        popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
+                                    }
+                                },
+                                enabled = !isLoading,
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.defaultMinSize(minHeight = 0.dp)
+                            ) {
+                                Text(
+                                    "Login",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodySmall
                                 )
                             }
-                            is Resource.Loading -> {
-                                // Already showing loading state
-                            }
                         }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(bottom = 16.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                ),
-                enabled = newPassword.isNotEmpty() && 
-                         confirmPassword.isNotEmpty() && 
-                         passwordsMatch && 
-                         passwordError.isEmpty()
-            ) {
-                Text("Reset Password")
-            }
-
-            // Password strength indicator
-            if (newPassword.isNotEmpty()) {
-                PasswordStrengthIndicator(password = newPassword)
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Back to Login Link
-            Row(
-                horizontalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    "Remember your password? ",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                TextButton(
-                    onClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.FORGOT_PASSWORD.replace("{email}", email)) { inclusive = true }
-                        }
-                    },
-                    enabled = !isLoading
-                ) {
-                    Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
             }
-            }
-        }
 
-        // Snackbar for error messages
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        )
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(16.dp)
+            )
+        }
     }
 }
 

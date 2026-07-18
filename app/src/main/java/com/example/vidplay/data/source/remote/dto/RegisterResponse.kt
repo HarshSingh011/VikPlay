@@ -10,10 +10,6 @@ data class RegisterResponse(
     val success: Boolean
 )
 
-/**
- * Extension function to convert DTO to domain model.
- * Separates data layer (DTOs) from domain layer (models).
- */
 fun RegisterResponse.toDomain(): RegistrationData = RegistrationData(
     message = message,
     success = success

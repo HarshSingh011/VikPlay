@@ -1,5 +1,6 @@
 package com.example.vidplay.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,10 +33,13 @@ import com.example.vidplay.ui.theme.DiscordTextInput
 import com.example.vidplay.util.Resource
 import com.example.vidplay.util.PreferenceHelper
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.cancelChildren
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import com.makeapp.vikplay.R
 import com.example.vidplay.ui.components.CustomOutlinedTextField
 import android.util.Log
 
@@ -54,15 +58,15 @@ fun LoginScreen(
     var loginError by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
-    // Ensure cleanup when composable is disposed
+    
     DisposableEffect(Unit) {
         onDispose {
-            // Cancel all coroutines when screen is destroyed
+            
             scope.coroutineContext.cancelChildren()
         }
     }
 
-    // Regex patterns
+    
     val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
     val passwordPattern = Regex("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@\$!%*?&])[A-Za-z\\d@\$!%*?&]{8,}$")
 
@@ -94,18 +98,32 @@ fun LoginScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .padding(24.dp)
                     .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 32.dp, bottom = 24.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(top = 24.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.vikicon),
+                        contentDescription = "VidPlay app icon",
+                        modifier = Modifier
+                            .size(96.dp)
+                            .background(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                            .padding(12.dp),
+                        contentScale = ContentScale.Fit
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "VidPlay",
+                        text = "VikPlay",
                         style = MaterialTheme.typography.displaySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -173,7 +191,7 @@ fun LoginScreen(
                                 onClick = { passwordVisible = !passwordVisible }
                             ) {
                                 Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = "Toggle password visibility"
                                 )
                             }
@@ -244,13 +262,11 @@ fun LoginScreen(
                                                 loginError = "Login failed: No token received from server"
                                                 isLoading = false
                                             } else {
-                                                // Save token and username to preferences
+                                                
                                                 val extractedUsername = email.substringBefore("@")
                                                 val preferences = PreferenceHelper(context)
-                                                Log.d("LoginScreen", "Login success! Saving token: ${token.take(20)}...")
                                                 preferences.token = token
                                                 preferences.username = extractedUsername
-                                                Log.d("LoginScreen", "Token saved. Verify: ${preferences.token.take(20)}...")
                                                 navController.navigate(Routes.LOCAL_STORAGE) {
                                                     popUpTo(Routes.LOGIN) { inclusive = true }
                                                 }
@@ -261,7 +277,7 @@ fun LoginScreen(
                                             isLoading = false
                                         }
                                         is Resource.Loading -> {
-                                            // Already handled by isLoading flag
+                                            
                                         }
                                     }
                                 }
@@ -283,38 +299,30 @@ fun LoginScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        HorizontalDivider(
-                            modifier = Modifier.weight(1f),
-                            thickness = DividerDefaults.Thickness,
-                            color = DividerDefaults.color
-                        )
                         Text(
                             "Don't have an account?",
-                            modifier = Modifier.padding(horizontal = 8.dp),
-                            style = MaterialTheme.typography.bodySmall
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        HorizontalDivider(
-                            modifier = Modifier.weight(1f),
-                            thickness = DividerDefaults.Thickness,
-                            color = DividerDefaults.color
-                        )
-                    }
-
-                    TextButton(
-                        onClick = {
-                            navController.navigate(Routes.REGISTER) {
-                                popUpTo(Routes.LOGIN) { inclusive = false }
-                            }
+                        TextButton(
+                            onClick = {
+                                navController.navigate(Routes.REGISTER) {
+                                    popUpTo(Routes.LOGIN) { inclusive = false }
+                                }
+                            },
+                            contentPadding = PaddingValues(0.dp),
+                            modifier = Modifier.defaultMinSize(minHeight = 0.dp)
+                        ) {
+                            Text(
+                                "Create a New Account",
+                                color = MaterialTheme.colorScheme.primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
-                    ) {
-                        Text(
-                            "Create a New Account",
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
                     }
                 }
             }

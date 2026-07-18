@@ -23,20 +23,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel for stream-listing screens.
- *
- * Uses [AndroidViewModel] so it can access [PreferenceHelper] to read the
- * saved token without passing Context through the UI.
- *
- * Dependency graph is constructed here (manual DI).
- * Swap these constructors for injected interfaces once Hilt/Dagger is added.
- */
 class StreamViewModel(application: Application) : AndroidViewModel(application) {
 
-    // ------------------------------------------------------------------ //
-    // Manual DI wiring (data → domain → viewmodel)
-    // ------------------------------------------------------------------ //
+    
+    
+    
     private val prefHelper = PreferenceHelper(application)
 
     private val repository = StreamRepositoryImpl(RetrofitClient.streamApiService)
@@ -46,58 +37,55 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
     private val searchStreamsUseCase  = SearchStreamsUseCase(repository)
     private val startStreamUseCase    = StartStreamUseCase(repository)
 
-    // ------------------------------------------------------------------ //
-    // State exposed to the UI
-    // ------------------------------------------------------------------ //
+    
+    
+    
 
-    /** All-streams tab state */
+    
     private val _allStreamsState = MutableStateFlow<StreamUiState>(StreamUiState.Loading)
     val allStreamsState: StateFlow<StreamUiState> = _allStreamsState.asStateFlow()
 
-    /** My-streams (history) tab state */
+    
     private val _myStreamsState = MutableStateFlow<MyStreamUiState>(MyStreamUiState.Loading)
     val myStreamsState: StateFlow<MyStreamUiState> = _myStreamsState.asStateFlow()
 
-    /** Search results state */
+    
     private val _searchState = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val searchState: StateFlow<SearchUiState> = _searchState.asStateFlow()
 
-    /** Start-stream state */
+    
     private val _startStreamState = MutableStateFlow<StartStreamUiState>(StartStreamUiState.Idle)
     val startStreamState: StateFlow<StartStreamUiState> = _startStreamState.asStateFlow()
 
-    // ------------------------------------------------------------------ //
-    // Search query stored in the ViewModel so it survives recomposition
-    // ------------------------------------------------------------------ //
+    
+    
+    
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    // ------------------------------------------------------------------ //
-    // Data caching for diff comparison
-    // ------------------------------------------------------------------ //
+    
+    
+    
     private var cachedAllStreams: List<Stream> = emptyList()
     private var cachedMyStreams: List<MyStream> = emptyList()
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
-        // Clear results when user clears the text field
+        
         if (query.isBlank()) _searchState.value = SearchUiState.Idle
     }
 
-    // ------------------------------------------------------------------ //
-    // Actions
-    // ------------------------------------------------------------------ //
+    
+    
+    
 
     init {
-        Log.d("StreamViewModel", "Init block called, token=${prefHelper.token.take(20)}...")
         fetchAllStreams()
         fetchMyStreams()
     }
 
-    /**
-     * Call the search API with current query.
-     * Results replace whatever is displayed in the active tab.
-     */
+    
+
     fun searchStreams() {
         val query = _searchQuery.value.trim()
         if (query.isBlank()) return
@@ -115,7 +103,7 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Start a new live stream via the API. */
+    
     fun startStream(title: String, description: String?, thumbnailUrl: String?) {
         viewModelScope.launch {
             _startStreamState.value = StartStreamUiState.Loading
@@ -128,16 +116,13 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Reset start-stream state back to Idle (call when leaving LiveStreamingScreen). */
+    
     fun resetStartStreamState() {
         _startStreamState.value = StartStreamUiState.Idle
     }
 
-    /**
-     * End an active live stream via the API.
-     * Fire-and-forget: called when the broadcaster leaves LiveStreamingScreen.
-     * Errors are silently ignored so navigation is never blocked.
-     */
+    
+
     fun endStream(streamCode: String) {
         viewModelScope.launch {
             try {
@@ -146,7 +131,7 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Called when user switches tab — clears search and reloads the tab's own data. */
+    
     fun onTabSelected(tab: Int) {
         _searchQuery.value = ""
         _searchState.value = SearchUiState.Idle
@@ -155,73 +140,55 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
 
     fun fetchAllStreams() {
         viewModelScope.launch {
-            // Only show loading if we have no cached data
+            
             if (cachedAllStreams.isEmpty()) {
                 _allStreamsState.value = StreamUiState.Loading
             }
             val token = prefHelper.token
-            Log.d("StreamViewModel", "fetchAllStreams called with token: ${token.take(20)}...")
             when (val result = getAllStreamsUseCase(token)) {
                 is Resource.Success -> {
-                    Log.d("StreamViewModel", "fetchAllStreams success: ${result.data.size} streams")
-                    // Check if data has changed before updating UI
-                    if (result.data != cachedAllStreams) {
-                        Log.d("StreamViewModel", "All streams data changed, updating UI")
-                        cachedAllStreams = result.data
-                        if (result.data.isEmpty()) {
-                            _allStreamsState.value = StreamUiState.Success(emptyList())
-                        } else {
-                            _allStreamsState.value = StreamUiState.Success(result.data)
-                        }
+                    cachedAllStreams = result.data
+                    if (result.data.isEmpty()) {
+                        _allStreamsState.value = StreamUiState.Success(emptyList())
                     } else {
-                        Log.d("StreamViewModel", "All streams data unchanged, keeping previous UI state")
-                        // Keep the current state without updating
+                        _allStreamsState.value = StreamUiState.Success(result.data)
                     }
                 }
                 is Resource.Error   -> {
                     Log.e("StreamViewModel", "fetchAllStreams error: ${result.message}")
                     _allStreamsState.value = StreamUiState.Error(result.message)
                 }
-                is Resource.Loading -> { /* handled by initial state */ }
+                is Resource.Loading -> {  }
             }
         }
     }
 
     fun fetchMyStreams() {
         viewModelScope.launch {
-            // Only show loading if we have no cached data
+            
             if (cachedMyStreams.isEmpty()) {
                 _myStreamsState.value = MyStreamUiState.Loading
             }
             val token = prefHelper.token
-            Log.d("StreamViewModel", "fetchMyStreams called with token: ${token.take(20)}...")
             when (val result = getMyStreamsUseCase(token)) {
                 is Resource.Success -> {
-                    Log.d("StreamViewModel", "fetchMyStreams success: ${result.data.size} streams")
-                    // Check if data has changed before updating UI
-                    if (result.data != cachedMyStreams) {
-                        Log.d("StreamViewModel", "My streams data changed, updating UI")
-                        cachedMyStreams = result.data
-                        if (result.data.isEmpty()) {
-                            _myStreamsState.value = MyStreamUiState.Success(emptyList())
-                        } else {
-                            _myStreamsState.value = MyStreamUiState.Success(result.data)
-                        }
+                    cachedMyStreams = result.data
+                    if (result.data.isEmpty()) {
+                        _myStreamsState.value = MyStreamUiState.Success(emptyList())
                     } else {
-                        Log.d("StreamViewModel", "My streams data unchanged, keeping previous UI state")
-                        // Keep the current state without updating
+                        _myStreamsState.value = MyStreamUiState.Success(result.data)
                     }
                 }
                 is Resource.Error   -> {
                     Log.e("StreamViewModel", "fetchMyStreams error: ${result.message}")
                     _myStreamsState.value = MyStreamUiState.Error(result.message)
                 }
-                is Resource.Loading -> { /* handled by initial state */ }
+                is Resource.Loading -> {  }
             }
         }
     }
 
-    /** Convenience: filter live streams by the current search query. */
+    
     fun filterStreams(streams: List<Stream>): List<Stream> {
         val q = _searchQuery.value.trim()
         return if (q.isBlank()) streams
@@ -231,7 +198,7 @@ class StreamViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    /** Convenience: filter history streams by the current search query. */
+    
     fun filterMyStreams(streams: List<MyStream>): List<MyStream> {
         val q = _searchQuery.value.trim()
         return if (q.isBlank()) streams

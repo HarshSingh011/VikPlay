@@ -3,11 +3,6 @@ package com.example.vidplay.data.source.remote.dto
 import com.google.gson.annotations.SerializedName
 import com.example.vidplay.domain.model.ActiveStream
 
-/**
- * DTO for the POST /api/streaming/streams/start response.
- * Distinct from StreamDto because it includes stream_key which
- * the broadcaster needs to connect to the WebRTC signaling server.
- */
 data class ActiveStreamDto(
     @SerializedName("stream_code")   val streamCode: String,
     @SerializedName("title")         val title: String?,

@@ -3,10 +3,6 @@ package com.example.vidplay.data.source.remote.dto
 import com.google.gson.annotations.SerializedName
 import com.example.vidplay.domain.model.MyStream
 
-/**
- * DTO for items returned by GET /api/streaming/streams/search
- * Slightly different from MyStreamDto: no [id], has [viewerCount].
- */
 data class SearchStreamDto(
     @SerializedName("stream_code")      val streamCode: String,
     @SerializedName("title")            val title: String?,
@@ -20,9 +16,8 @@ data class SearchStreamDto(
     @SerializedName("duration_seconds") val durationSeconds: Int?
 )
 
-/** Reuses [MyStream] as the domain entity — viewer_count mapped to maxViewerCount. */
 fun SearchStreamDto.toDomain(): MyStream = MyStream(
-    id              = 0,           // search endpoint doesn't return id
+    id              = 0,           
     streamCode      = streamCode,
     title           = title ?: streamCode,
     description     = description ?: "",

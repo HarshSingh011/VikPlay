@@ -53,7 +53,7 @@ class MusicPlayerViewModel(private val context: Context) : ViewModel() {
                 controller = controllerFuture?.get()
                 controller?.addListener(playerListener)
                 syncState()
-            } catch (_: Exception) { /* service not yet available */ }
+            } catch (_: Exception) {  }
         }, MoreExecutors.directExecutor())
     }
 

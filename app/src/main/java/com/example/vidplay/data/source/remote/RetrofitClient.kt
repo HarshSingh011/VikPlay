@@ -1,6 +1,6 @@
 package com.example.vidplay.data.source.remote
 
-import com.example.vidplay.BuildConfig
+import com.makeapp.vikplay.BuildConfig
 import com.example.vidplay.util.Constants
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -8,15 +8,10 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-/**
- * Singleton that builds and exposes the Retrofit instance.
- * Swap `Constants.BASE_URL` to point at a different environment.
- */
 object RetrofitClient {
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
-                else HttpLoggingInterceptor.Level.NONE
+        level = HttpLoggingInterceptor.Level.NONE
     }
 
     private val urlLoggingInterceptor = ApiUrlLoggingInterceptor()

@@ -9,6 +9,7 @@ import com.example.vidplay.domain.model.Media
 import com.example.vidplay.domain.model.MusicItem
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.util.Locale
 
 object MediaUtils {
     suspend fun getVideos(contentResolver: ContentResolver): List<Media> = withContext(Dispatchers.IO) {
@@ -17,6 +18,7 @@ object MediaUtils {
             MediaStore.Video.Media.DISPLAY_NAME,
             MediaStore.Video.Media.SIZE,
             MediaStore.Video.Media.MIME_TYPE,
+            MediaStore.Video.Media.DURATION,
         )
 
         val collectionUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -38,14 +40,16 @@ object MediaUtils {
             val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE)
             val mimeTypeColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.MIME_TYPE)
+            val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DURATION)
 
             while (cursor.moveToNext()) {
                 val uri = ContentUris.withAppendedId(collectionUri, cursor.getLong(idColumn))
                 val name = cursor.getString(displayNameColumn)
                 val size = cursor.getLong(sizeColumn)
                 val mimeType = cursor.getString(mimeTypeColumn)
+                val duration = cursor.getLong(durationColumn)
 
-                val video = Media(uri, name, size, mimeType)
+                val video = Media(uri, name, size, mimeType, duration)
                 videos.add(video)
             }
         }
@@ -76,7 +80,7 @@ object MediaUtils {
         contentResolver.query(
             collectionUri,
             projection,
-            null,   // include ALL audio files, not just IS_MUSIC
+            null,   
             null,
             "${MediaStore.Audio.Media.DATE_ADDED} DESC"
         )?.use { cursor ->
@@ -111,12 +115,8 @@ object MediaUtils {
         return@withContext items
     }
 
-    /**
-     * Delete a list of media URIs from the device.
-     * On Android 11+ (API 30) returns a non-null IntentSender that the caller must launch
-     * via ActivityResultLauncher<IntentSenderRequest> to show the system confirmation dialog.
-     * On older Android the files are deleted directly and null is returned.
-     */
+    
+
     fun deleteMediaItems(
         contentResolver: ContentResolver,
         uris: List<android.net.Uri>
@@ -131,6 +131,102 @@ object MediaUtils {
         }
     }
 
+    private val documentExtensions = setOf(
+        "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+        "txt", "rtf", "csv", "odt", "ods", "odp", "md", "json", "xml"
+    )
+
+    private fun looksLikeDocument(name: String, mimeType: String): Boolean {
+        val normalizedMime = mimeType.lowercase(Locale.ROOT)
+        if (normalizedMime.startsWith("video/") || normalizedMime.startsWith("audio/") || normalizedMime.startsWith("image/")) {
+            return false
+        }
+        if (normalizedMime == "application/vnd.android.package-archive") {
+            return false
+        }
+
+        val extension = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
+        if (extension in documentExtensions) {
+            return true
+        }
+
+        return normalizedMime.startsWith("application/") || normalizedMime.startsWith("text/")
+    }
+
+    suspend fun getDownloads(contentResolver: ContentResolver): List<Media> = withContext(Dispatchers.IO) {
+        val projection = arrayOf(
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DISPLAY_NAME,
+            MediaStore.Files.FileColumns.SIZE,
+            MediaStore.Files.FileColumns.MIME_TYPE,
+        )
+
+        val isQPlus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        val filesCollectionUri = if (isQPlus) {
+            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Files.getContentUri("external")
+        }
+        val downloadsCollectionUri = if (isQPlus) {
+            MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Files.getContentUri("external")
+        }
+
+        val selection = if (isQPlus) {
+            "${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ? OR ${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ?"
+        } else {
+            "${MediaStore.Files.FileColumns.DATA} LIKE ? OR ${MediaStore.Files.FileColumns.DATA} LIKE ?"
+        }
+        val selectionArgs = if (isQPlus) {
+            arrayOf("Download/%", "Downloads/%")
+        } else {
+            arrayOf("%/Download/%", "%/Downloads/%")
+        }
+
+        val itemsByUri = linkedMapOf<String, Media>()
+
+        fun queryInto(collectionUri: Uri, localSelection: String?, localArgs: Array<String>?) {
+            contentResolver.query(
+                collectionUri,
+                projection,
+                localSelection,
+                localArgs,
+                "${MediaStore.Files.FileColumns.DATE_ADDED} DESC"
+            )?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
+                val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                val mimeTypeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
+
+                while (cursor.moveToNext()) {
+                    val id = cursor.getLong(idCol)
+                    val mediaUri = ContentUris.withAppendedId(collectionUri, id)
+                    val key = mediaUri.toString()
+                    if (itemsByUri.containsKey(key)) continue
+
+                    itemsByUri[key] = Media(
+                        uri = mediaUri,
+                        name = cursor.getString(nameCol) ?: "Unknown",
+                        size = cursor.getLong(sizeCol),
+                        mimeType = cursor.getString(mimeTypeCol) ?: "application/octet-stream"
+                    )
+                }
+            }
+        }
+
+        try {
+            queryInto(filesCollectionUri, selection, selectionArgs)
+            if (itemsByUri.isEmpty()) {
+                queryInto(downloadsCollectionUri, null, null)
+            }
+        } catch (_: SecurityException) {
+            // Device-specific scoped-storage policies can restrict this query; caller handles empty state.
+        }
+
+        return@withContext itemsByUri.values.toList()
+    }
+
     suspend fun getDocuments(contentResolver: ContentResolver): List<Media> = withContext(Dispatchers.IO) {
         val projection = arrayOf(
             MediaStore.Files.FileColumns._ID,
@@ -139,50 +235,121 @@ object MediaUtils {
             MediaStore.Files.FileColumns.MIME_TYPE,
         )
 
-        val mimeTypes = arrayOf(
-            "application/pdf",
-            "application/msword",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.ms-excel",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.ms-powerpoint",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "text/plain",
-        )
-
-        val selection = mimeTypes.joinToString(" OR ") {
-            "${MediaStore.Files.FileColumns.MIME_TYPE} = ?"
+        val isQPlus = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+        val filesCollectionUri = if (isQPlus) {
+            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Files.getContentUri("external")
+        }
+        val downloadsCollectionUri = if (isQPlus) {
+            MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        } else {
+            MediaStore.Files.getContentUri("external")
         }
 
-        val collectionUri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
-        val items = mutableListOf<Media>()
+        val folderSelection = if (isQPlus) {
+            "${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ? OR ${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ? OR ${MediaStore.Files.FileColumns.RELATIVE_PATH} LIKE ?"
+        } else {
+            "${MediaStore.Files.FileColumns.DATA} LIKE ? OR ${MediaStore.Files.FileColumns.DATA} LIKE ? OR ${MediaStore.Files.FileColumns.DATA} LIKE ?"
+        }
+        val folderSelectionArgs = if (isQPlus) {
+            arrayOf("Documents/%", "Download/%", "Downloads/%")
+        } else {
+            arrayOf("%/Documents/%", "%/Download/%", "%/Downloads/%")
+        }
 
-        contentResolver.query(
-            collectionUri,
-            projection,
-            selection,
-            mimeTypes,
-            "${MediaStore.Files.FileColumns.DATE_ADDED} DESC"
-        )?.use { cursor ->
-            val idCol       = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
-            val nameCol     = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
-            val sizeCol     = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
-            val mimeTypeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
+        val itemsByUri = linkedMapOf<String, Media>()
 
-            while (cursor.moveToNext()) {
-                val id  = cursor.getLong(idCol)
-                val uri = ContentUris.withAppendedId(collectionUri, id)
-                items.add(
-                    Media(
-                        uri      = uri,
-                        name     = cursor.getString(nameCol) ?: "Unknown",
-                        size     = cursor.getLong(sizeCol),
-                        mimeType = cursor.getString(mimeTypeCol) ?: ""
+        fun queryInto(collectionUri: Uri, localSelection: String?, localArgs: Array<String>?) {
+            contentResolver.query(
+                collectionUri,
+                projection,
+                localSelection,
+                localArgs,
+                "${MediaStore.Files.FileColumns.DATE_ADDED} DESC"
+            )?.use { cursor ->
+                val idCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns._ID)
+                val nameCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.DISPLAY_NAME)
+                val sizeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.SIZE)
+                val mimeTypeCol = cursor.getColumnIndexOrThrow(MediaStore.Files.FileColumns.MIME_TYPE)
+
+                while (cursor.moveToNext()) {
+                    val name = cursor.getString(nameCol) ?: "Unknown"
+                    val mimeType = cursor.getString(mimeTypeCol) ?: ""
+                    if (!looksLikeDocument(name, mimeType)) continue
+
+                    val id = cursor.getLong(idCol)
+                    val mediaUri = ContentUris.withAppendedId(collectionUri, id)
+                    val key = mediaUri.toString()
+                    if (itemsByUri.containsKey(key)) continue
+
+                    itemsByUri[key] = Media(
+                        uri = mediaUri,
+                        name = name,
+                        size = cursor.getLong(sizeCol),
+                        mimeType = mimeType
                     )
-                )
+                }
             }
         }
 
-        return@withContext items
+        try {
+            queryInto(filesCollectionUri, folderSelection, folderSelectionArgs)
+            queryInto(downloadsCollectionUri, null, null)
+            queryInto(filesCollectionUri, null, null)
+        } catch (_: SecurityException) {
+            // Device-specific scoped-storage policies can restrict this query; caller handles empty state.
+        }
+
+        return@withContext itemsByUri.values.toList()
+    }
+}
+
+object VideoThumbnailLoader {
+    // 50 MB in-memory cache for thumbnails
+    val cache = object : android.util.LruCache<Uri, android.graphics.Bitmap>(50 * 1024 * 1024) {
+        override fun sizeOf(key: Uri, bitmap: android.graphics.Bitmap): Int {
+            return bitmap.byteCount
+        }
+    }
+
+    fun getThumbnailFromCache(uri: Uri): android.graphics.Bitmap? {
+        return cache.get(uri)
+    }
+
+    suspend fun getThumbnail(context: android.content.Context, uri: Uri): android.graphics.Bitmap? {
+        cache.get(uri)?.let { return it }
+
+        return kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                    context.contentResolver.loadThumbnail(uri, android.util.Size(320, 180), null)
+                } else {
+                    val path = getRealPathFromUri(context, uri) ?: return@withContext null
+                    android.media.ThumbnailUtils.createVideoThumbnail(path, android.provider.MediaStore.Images.Thumbnails.MINI_KIND)
+                }
+                if (bitmap != null) {
+                    cache.put(uri, bitmap)
+                }
+                bitmap
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
+    private fun getRealPathFromUri(context: android.content.Context, uri: Uri): String? {
+        var path: String? = null
+        val projection = arrayOf(android.provider.MediaStore.Video.Media.DATA)
+        try {
+            context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    path = cursor.getString(cursor.getColumnIndexOrThrow(android.provider.MediaStore.Video.Media.DATA))
+                }
+            }
+        } catch (e: Exception) {
+            // ignore
+        }
+        return path
     }
 }

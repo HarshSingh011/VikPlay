@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
@@ -40,31 +38,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.navigation.NavController
+import android.util.Log
 import com.example.vidplay.data.model.ChatMessage
 import com.example.vidplay.data.webrtc.WebRtcViewerManager
 import com.example.vidplay.ui.components.ChatPanel
 import com.example.vidplay.util.PreferenceHelper
+import kotlin.math.abs
 import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
 import org.webrtc.VideoTrack
 
-// ── Viewer state machine ─────────────────────────────────────────────────────
-
 private enum class ViewerState { CONNECTING, WATCHING, STREAM_ENDED, ERROR }
 
-// ── Composable ───────────────────────────────────────────────────────────────
-
-/**
- * Viewer screen for a live WebRTC stream.
- *
- * Full flow:
- *  1. Opens viewer WebSocket → server notifies broadcaster (new_viewer)
- *  2. Broadcaster sends SDP offer → viewer creates answer → sends back
- *  3. Both sides exchange ICE candidates → P2P path established
- *  4. Remote video track arrives via pc.ontrack → rendered in SurfaceViewRenderer
- *  5. If buffer drifts behind live → sendGoLive() → broadcaster flushes keyframe
- *  6. On stream_ended → shows "Stream has ended" UI
- */
 @Composable
 fun ViewerStreamingScreen(
     navController: NavController,
@@ -75,7 +60,7 @@ fun ViewerStreamingScreen(
     val token   = remember { PreferenceHelper(context).token }
     val username = remember { PreferenceHelper(context).username }
 
-    // ── State ─────────────────────────────────────────────────────────────────
+    
     var viewerState   by remember { mutableStateOf(ViewerState.CONNECTING) }
     var errorMessage  by remember { mutableStateOf("") }
     var remoteTrack   by remember { mutableStateOf<VideoTrack?>(null) }
@@ -83,9 +68,9 @@ fun ViewerStreamingScreen(
     var retryKey      by remember { mutableStateOf(0) }
     var chatMessages  by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
 
-    // ── Start / restart the viewer manager ───────────────────────────────────
+    
     LaunchedEffect(streamCode, retryKey) {
-        // Clean up any previous attempt
+        
         manager?.release()
         manager = null
         remoteTrack = null
@@ -101,30 +86,46 @@ fun ViewerStreamingScreen(
                 viewerState = ViewerState.WATCHING
             },
             onStreamEnded = { viewerState = ViewerState.STREAM_ENDED },
-            onConnected   = { /* WS open — waiting for broadcaster offer */ },
+            onConnected   = {  },
             onError       = { msg ->
                 errorMessage = msg
                 viewerState  = ViewerState.ERROR
+            },
+            onChatMessage = { senderUsername, messageText, senderRole, timestamp ->
+                val incomingMsg = ChatMessage(
+                    username = senderUsername,
+                    message = messageText,
+                    role = senderRole,
+                    timestamp = timestamp
+                )
+                val isDuplicate = chatMessages.any {
+                    it.role == incomingMsg.role &&
+                        it.message == incomingMsg.message &&
+                        abs(it.timestamp - incomingMsg.timestamp) <= 3000L
+                }
+                if (!isDuplicate) {
+                    chatMessages = chatMessages + incomingMsg
+                }
             }
         )
         mgr.start()
         manager = mgr
     }
 
-    // ── Cleanup when composable leaves the composition ───────────────────────
+    
     DisposableEffect(Unit) {
         onDispose {
             manager?.release()
         }
     }
 
-    // ── Root container ────────────────────────────────────────────────────────
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
-        // ── Top bar: back button + title + LIVE badge ─────────────────────────
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -164,19 +165,19 @@ fun ViewerStreamingScreen(
             }
         }
 
-        // ── Fixed size video + chat section ─────────────────────────────────
+        
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // ── Fixed size video box (16:9 aspect ratio) ────────────────────
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp)
+                    .weight(1.2f)
+                    .padding(12.dp)
                     .background(Color.Black, RoundedCornerShape(8.dp))
             ) {
                 if (viewerState == ViewerState.WATCHING) {
@@ -202,7 +203,7 @@ fun ViewerStreamingScreen(
                         )
                     }
                 } else {
-                    // Placeholder when not watching
+                    
                     Column(
                         modifier = Modifier
                             .fillMaxSize(),
@@ -227,27 +228,27 @@ fun ViewerStreamingScreen(
                 }
             }
 
-            // ── Chat panel ───────────────────────────────────────────────────
+            
             ChatPanel(
                 messages = chatMessages,
                 onSendMessage = { text ->
-                    // Send chat message via WebSocket
-                    val msg = ChatMessage(
-                        username = username,
-                        message = text,
-                        role = "viewer"
+                    val localMessage = ChatMessage(
+                        username = username.ifBlank { "Viewer" },
+                        message = text.trim(),
+                        role = "viewer",
+                        timestamp = System.currentTimeMillis()
                     )
-                    chatMessages = chatMessages + msg
-                    manager?.sendChatMessage(text)
+                    chatMessages = chatMessages + localMessage
+                    manager?.sendChatMessage(text, username)
                 },
                 username = username,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(250.dp)
+                    .weight(0.85f)
             )
         }
 
-        // ── Bottom action buttons (when watching) ────────────────────────────
+        
         if (viewerState == ViewerState.WATCHING) {
             Row(
                 modifier = Modifier
@@ -267,7 +268,7 @@ fun ViewerStreamingScreen(
             }
         }
 
-        // ── Error bottom section ────────────────────────────────────────────
+        
         if (viewerState == ViewerState.ERROR) {
             Column(
                 modifier = Modifier

@@ -7,7 +7,7 @@ data class MusicItem(
     val title: String,
     val artist: String,
     val album: String,
-    val duration: Long,       // milliseconds
+    val duration: Long,       
     val size: Long,
     val albumArtUri: Uri?
 )

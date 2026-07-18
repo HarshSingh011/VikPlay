@@ -30,22 +30,6 @@ import java.util.concurrent.TimeUnit
 
 private const val TAG = "WebRtcViewer"
 
-/**
- * Viewer-side WebRTC engine.
- *
- * Confirmed server protocol (from backend source):
- *
- *   WS URL:  wss://HOST/api/webrtc/ws/view/{stream_code}?token=<jwt>
- *
- *   RX "connected"     -> viewer immediately creates PC + sends SDP offer
- *   TX "offer"         -> server auto-relays to broadcaster (sets source=peer_id)
- *   RX "answer"        -> broadcaster's SDP answer routed back via target=viewer_id
- *   TX/RX "ice_candidate" -> relayed both ways by server
- *   RX "stream_ended"  -> broadcaster disconnected
- *   TX "request_go_live" -> triggers keyframe from broadcaster
- *
- *   NOT supported by server: "request_offer" — dropped with warning log.
- */
 class WebRtcViewerManager(
     private val context: Context,
     private val streamCode: String,
@@ -53,7 +37,8 @@ class WebRtcViewerManager(
     private val onRemoteTrack: (VideoTrack) -> Unit,
     private val onStreamEnded: () -> Unit,
     private val onConnected: () -> Unit,
-    private val onError: (String) -> Unit
+    private val onError: (String) -> Unit,
+    private val onChatMessage: (String, String, String, Long) -> Unit = { _, _, _, _ -> }
 ) {
     companion object {
         private const val REST_HOST = "https://vikplay-backend.onrender.com"
@@ -74,8 +59,12 @@ class WebRtcViewerManager(
     private var remoteDescSet = false
 
     private var cachedIceServers: List<PeerConnection.IceServer> = emptyList()
+    
+    
+    private var sentChatCount = 0
+    private var receivedChatCount = 0
 
-    // ── Public API ───────────────────────────────────────────────────────────
+    
 
     fun start() {
         initFactory()
@@ -87,13 +76,19 @@ class WebRtcViewerManager(
         Log.d(TAG, "TX request_go_live")
     }
 
-    fun sendChatMessage(text: String) {
-        val msg = JSONObject().apply { 
+    fun sendChatMessage(text: String, username: String) {
+        if (text.isBlank()) return
+        sentChatCount++
+        val msg = JSONObject().apply {
             put("type", "chat_message")
-            put("message", text)
+            put("message", text.trim())
+            put("username", username.ifBlank { "Viewer" })
+            put("role", "viewer")
+            put("timestamp", System.currentTimeMillis())
         }.toString()
+        Log.d(TAG, "💬 TX chat_message [$sentChatCount]: '$text' (${text.length} chars)")
         webSocket?.send(msg)
-        Log.d(TAG, "TX chat_message: $text")
+        Log.d(TAG, "✉️ Chat message sent to server - awaiting echo...")
     }
 
     fun release() {
@@ -107,7 +102,7 @@ class WebRtcViewerManager(
         Log.d(TAG, "Released")
     }
 
-    // ── Factory ──────────────────────────────────────────────────────────────
+    
 
     private fun initFactory() {
         PeerConnectionFactory.initialize(
@@ -121,7 +116,7 @@ class WebRtcViewerManager(
         Log.d(TAG, "PeerConnectionFactory initialised")
     }
 
-    // ── ICE fetch ────────────────────────────────────────────────────────────
+    
 
     private fun fetchIceServersAndConnect() {
         Thread {
@@ -191,7 +186,7 @@ class WebRtcViewerManager(
         return result
     }
 
-    // ── WebSocket ─────────────────────────────────────────────────────────────
+    
 
     private fun openWebSocket() {
         val url = viewerUrl(streamCode, jwtToken)
@@ -214,7 +209,19 @@ class WebRtcViewerManager(
                     onConnected()
                 }
                 override fun onMessage(ws: WebSocket, text: String) {
-                    Log.d(TAG, "RX: $text")
+                    try {
+                        val json = org.json.JSONObject(text)
+                        val type = json.optString("type", "unknown")
+                        when {
+                            type == "chat_message" -> Log.d(TAG, "📩 RX raw message [CHAT]: ${text.take(200)}")
+                            type == "connected" -> Log.d(TAG, "✅ RX: $type message")
+                            type == "answer" -> Log.d(TAG, "📡 RX: $type message")
+                            type == "ice_candidate" -> Log.d(TAG, "🧊 RX: $type message")
+                            else -> Log.d(TAG, "RX [$type]: ${text.take(200)}")
+                        }
+                    } catch (e: Exception) {
+                        Log.d(TAG, "⚠️ Could not parse message type from: ${text.take(100)}")
+                    }
                     handleMessage(text)
                 }
                 override fun onMessage(ws: WebSocket, bytes: ByteString) = handleMessage(bytes.utf8())
@@ -234,7 +241,7 @@ class WebRtcViewerManager(
         )
     }
 
-    // ── Message handler ───────────────────────────────────────────────────────
+    
 
     private fun handleMessage(text: String) {
         try {
@@ -242,9 +249,9 @@ class WebRtcViewerManager(
             when (val type = json.optString("type")) {
 
                 "connected" -> {
-                    // Server confirmed viewer WS + assigned viewer_id.
-                    // Protocol: viewer immediately sends SDP offer.
-                    // Server auto-relays it to broadcaster (sets source=peer_id).
+                    
+                    
+                    
                     val vid = json.optInt("viewer_id", -1)
                     viewerId = vid
                     Log.d(TAG, "connected: viewer_id=$vid stream=$streamCode -> creating PC + sending offer")
@@ -252,7 +259,7 @@ class WebRtcViewerManager(
                 }
 
                 "answer" -> {
-                    // Broadcaster responded to our offer — server routed it here via target=viewer_id
+                    
                     val sdp = when {
                         json.has("answer") -> json.getJSONObject("answer").optString("sdp", "")
                         json.has("sdp")    -> json.optString("sdp", "")
@@ -264,7 +271,7 @@ class WebRtcViewerManager(
                 }
 
                 "ice_candidate" -> {
-                    // ICE candidate relayed from broadcaster
+                    
                     val c             = json.optJSONObject("candidate")
                     val candidateStr  = c?.optString("candidate", "")  ?: json.optString("candidate", "")
                     val sdpMid        = c?.optString("sdpMid", "0")     ?: json.optString("sdpMid", "0")
@@ -279,14 +286,26 @@ class WebRtcViewerManager(
                     onStreamEnded()
                 }
 
-                "sync_timestamp" -> { /* server heartbeat — ignore */ }
+                "sync_timestamp" -> {  }
 
                 "chat_message" -> {
+                    receivedChatCount++
                     val username = json.optString("username", "Anonymous")
                     val message  = json.optString("message", "")
                     val role     = json.optString("role", "viewer")
-                    Log.d(TAG, "RX chat_message from $username ($role): $message")
-                    // onChatMessage will be called if callback is set
+                    
+                    
+                    var timestamp = json.optLong("timestamp", System.currentTimeMillis())
+                    
+                    Log.d(TAG, "🔔 RX chat_message [$receivedChatCount] from $username ($role): '$message' ts=$timestamp")
+                    Log.d(TAG, "📊 Chat stats - Sent: $sentChatCount, Received: $receivedChatCount")
+                    Log.d(TAG, "📨 Delivering chat message to UI callback...")
+                    try {
+                        onChatMessage(username, message, role, timestamp)
+                        Log.d(TAG, "✅ Chat message delivered successfully to UI")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "❌ Error calling onChatMessage callback: ${e.message}", e)
+                    }
                 }
 
                 "error" -> {
@@ -302,7 +321,7 @@ class WebRtcViewerManager(
         }
     }
 
-    // ── PeerConnection + SDP offer ────────────────────────────────────────────
+    
 
     private fun createPcAndSendOffer(vid: Int) {
         val factory = peerConnectionFactory ?: run {
@@ -319,7 +338,7 @@ class WebRtcViewerManager(
 
             override fun onIceCandidate(candidate: IceCandidate?) {
                 candidate ?: return
-                // Server auto-relays to broadcaster because this is a viewer WS connection
+                
                 val msg = JSONObject().apply {
                     put("type", "ice_candidate")
                     put("candidate", JSONObject().apply {
@@ -387,9 +406,9 @@ class WebRtcViewerManager(
                 Log.d(TAG, "createOffer OK len=${offerSdp?.description?.length}")
                 pc.setLocalDescription(sdpObserver(
                     onSetSuccess = {
-                        // Include viewer_id so broadcaster's extractViewerId() can identify us.
-                        // Also include source in "viewer_{id}_{ts}" format for web broadcaster JS.
-                        // Server auto-relays this to broadcaster; no "target" field needed.
+                        
+                        
+                        
                         val source = "viewer_${vid}_${System.currentTimeMillis()}"
                         val msg = JSONObject().apply {
                             put("type", "offer")
@@ -397,9 +416,9 @@ class WebRtcViewerManager(
                                 put("type", "offer")
                                 put("sdp", offerSdp!!.description)
                             })
-                            put("sdp", offerSdp!!.description)   // flat fallback
+                            put("sdp", offerSdp!!.description)   
                             put("viewer_id", vid)
-                            put("sender_id", vid)   // extra fallback field
+                            put("sender_id", vid)   
                             put("source", source)
                         }.toString()
                         val sent = webSocket?.send(msg)
@@ -413,7 +432,7 @@ class WebRtcViewerManager(
         ), constraints)
     }
 
-    // ── Answer ────────────────────────────────────────────────────────────────
+    
 
     private fun handleAnswer(answerSdp: String) {
         val pc = peerConnection ?: run { Log.e(TAG, "handleAnswer: pc is null"); return }
@@ -427,7 +446,7 @@ class WebRtcViewerManager(
         ), SessionDescription(SessionDescription.Type.ANSWER, answerSdp))
     }
 
-    // ── ICE queuing ───────────────────────────────────────────────────────────
+    
 
     private fun addOrQueueCandidate(candidate: IceCandidate) {
         val pc = peerConnection
@@ -447,7 +466,7 @@ class WebRtcViewerManager(
         pendingCandidates.clear()
     }
 
-    // ── SdpObserver helper ────────────────────────────────────────────────────
+    
 
     private fun sdpObserver(
         onCreateSuccess: ((SessionDescription?) -> Unit)? = null,

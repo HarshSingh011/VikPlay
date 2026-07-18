@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.vidplay"
+    namespace = "com.makeapp.vikplay"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.vidplay"
+        applicationId = "com.makeapp.vikplay"
         minSdk = 23
         targetSdk = 35
         versionCode = 1
@@ -38,7 +38,7 @@ android {
     kotlin {
         compilerOptions {
             jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11
-            freeCompilerArgs.addAll("-Xopt-in=androidx.media3.common.util.UnstableApi")
+            freeCompilerArgs.addAll("-opt-in=androidx.media3.common.util.UnstableApi")
         }
     }
     buildFeatures {
@@ -92,6 +92,7 @@ dependencies {
     val nav_version = "2.8.9"
     implementation("androidx.navigation:navigation-compose:$nav_version")
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("io.coil-kt:coil-video:2.4.0")
 
     // For video playback
     implementation ("androidx.media3:media3-exoplayer:1.1.1")

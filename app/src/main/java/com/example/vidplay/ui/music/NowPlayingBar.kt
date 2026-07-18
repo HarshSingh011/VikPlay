@@ -66,7 +66,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
-                // Progress bar at top
+                
                 val progress = if (state.duration > 0)
                     (state.currentPosition.toFloat() / state.duration.toFloat()).coerceIn(0f, 1f)
                 else 0f
@@ -84,7 +84,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                         .padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Album art
+                    
                     Box(
                         modifier = Modifier
                             .size(44.dp)
@@ -113,7 +113,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
 
                     Spacer(Modifier.width(10.dp))
 
-                    // Title + artist
+                    
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = track.title,
@@ -131,7 +131,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                         )
                     }
 
-                    // Controls
+                    
                     Row(horizontalArrangement = Arrangement.End) {
                         IconButton(onClick = { musicViewModel.skipToPrevious() }) {
                             Icon(

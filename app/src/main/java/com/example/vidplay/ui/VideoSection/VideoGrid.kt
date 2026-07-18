@@ -45,7 +45,7 @@ fun VideoGrid(navController: NavController, reloadTrigger: Int = 0) {
 
     LaunchedEffect(reloadTrigger) { reload() }
 
-    // Handles the system delete-confirmation dialog result (Android 11+)
+    
     val deleteLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->

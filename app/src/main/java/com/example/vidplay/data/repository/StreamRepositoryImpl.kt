@@ -13,13 +13,6 @@ import com.example.vidplay.domain.model.Stream
 import com.example.vidplay.domain.repository.StreamRepository
 import com.example.vidplay.util.Resource
 
-/**
- * Concrete implementation of [StreamRepository].
- * Lives in the data layer — the domain layer only ever sees the interface.
- *
- * All network calls are wrapped in try/catch so the ViewModel always
- * receives a typed [Resource] and never an unhandled exception.
- */
 class StreamRepositoryImpl(
     private val apiService: StreamApiService
 ) : StreamRepository {
@@ -66,9 +59,9 @@ class StreamRepositoryImpl(
         }
     }
 
-    // ---------------------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------------------
+    
+    
+    
 
     private suspend fun safeApiCall(
         call: suspend () -> retrofit2.Response<List<StreamDto>>

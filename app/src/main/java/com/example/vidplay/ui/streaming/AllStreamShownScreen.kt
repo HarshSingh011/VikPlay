@@ -111,7 +111,7 @@ fun AllStreamShownScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     var showStartDialog by remember { mutableStateOf(false) }
 
-    // Navigate to live stream screen when stream starts successfully
+    
     LaunchedEffect(startStreamState) {
         if (startStreamState is StartStreamUiState.Success) {
             showStartDialog = false
@@ -122,7 +122,7 @@ fun AllStreamShownScreen(
         }
     }
 
-    // Show Toast when search returns empty
+    
     LaunchedEffect(searchState) {
         if (searchState is SearchUiState.Empty) {
             Toast.makeText(context, "No such stream is live now", Toast.LENGTH_SHORT).show()
@@ -150,10 +150,10 @@ fun AllStreamShownScreen(
             Spacer(Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val selectedTabColor = Color(0xFF404EED)  // Discord Blue
-                val unselectedTabColor = Color(0xFF2A2A3E)  // Dark gray
+                val selectedTabColor = Color(0xFF404EED)  
+                val unselectedTabColor = Color(0xFF2A2A3E)  
                 val selectedTextColor = Color.White
-                val unselectedTextColor = Color(0xFFB5BAC1)  // Discord light gray
+                val unselectedTextColor = Color(0xFFB5BAC1)  
                 
                 Box(
                     contentAlignment = Alignment.Center,
@@ -226,7 +226,7 @@ fun AllStreamShownScreen(
 
             Spacer(Modifier.height(8.dp))
 
-            // ---- Content area: search results take priority over tab data ----
+            
             when (val sState = searchState) {
                 is SearchUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -259,7 +259,7 @@ fun AllStreamShownScreen(
                         ) { Text("Retry") }
                     }
                 }
-                // Idle or Empty → show the normal tab content
+                
                 SearchUiState.Idle, SearchUiState.Empty -> {
                     if (selectedTab == 0) {
                         when (val state = allStreamsState) {
@@ -393,7 +393,7 @@ fun AllStreamShownScreen(
                 onClick = { showStartDialog = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(bottom = 80.dp, end = 16.dp),  // above bottom nav
+                    .padding(bottom = 14.dp, end = 16.dp),
                 shape = CircleShape
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add")
@@ -404,7 +404,7 @@ fun AllStreamShownScreen(
                     onDismiss = { showStartDialog = false },
                     isLoading = startStreamState is StartStreamUiState.Loading,
                     onSubmit = { title, description, thumbnailUri ->
-                        // Only pass thumbnail if it's already a remote URL; local URIs can't be sent as-is
+                        
                         val remoteUrl = if (thumbnailUri != null && thumbnailUri.startsWith("http")) thumbnailUri else null
                         viewModel.startStream(title, description, remoteUrl)
                     }
@@ -427,7 +427,7 @@ fun MyStreamCard(item: MyStream) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(0.dp)) {
-            // Thumbnail section
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -457,7 +457,7 @@ fun MyStreamCard(item: MyStream) {
                     }
                 }
 
-                // Status badges
+                
                 Row(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -484,9 +484,9 @@ fun MyStreamCard(item: MyStream) {
                 }
             }
 
-            // Content section
+            
             Column(modifier = Modifier.padding(12.dp)) {
-                // Title + live badge
+                
                 Text(
                     text = item.title,
                     fontWeight = FontWeight.SemiBold,
@@ -507,7 +507,7 @@ fun MyStreamCard(item: MyStream) {
 
                 Spacer(Modifier.height(10.dp))
 
-                // Stream Stats
+                
                 val startDate = item.startedAt.substringBefore("T")
                 val endDate = item.endedAt?.substringBefore("T") ?: "ongoing"
                 val duration = item.durationSeconds?.let {
@@ -564,7 +564,7 @@ fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(0.dp)) {
-            // Thumbnail section
+            
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -594,7 +594,7 @@ fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
                     }
                 }
                 
-                // Live badge overlay
+                
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -614,7 +614,7 @@ fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
                 }
             }
 
-            // Content section
+            
             Column(modifier = Modifier.padding(12.dp)) {
                 Text(
                     text = item.title,
@@ -636,7 +636,7 @@ fun StreamCard(item: Stream, onClick: () -> Unit = {}) {
 
                 Spacer(Modifier.height(10.dp))
 
-                // Stats row
+                
                 val startedParts = item.startedAt.split("T")
                 val date = startedParts.getOrNull(0) ?: item.startedAt
                 val time = startedParts.getOrNull(1)?.removeSuffix("Z") ?: ""

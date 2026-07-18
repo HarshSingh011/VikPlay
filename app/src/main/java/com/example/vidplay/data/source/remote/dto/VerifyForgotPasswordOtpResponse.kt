@@ -10,10 +10,6 @@ data class VerifyForgotPasswordOtpResponse(
     val success: Boolean
 )
 
-/**
- * Extension function to convert DTO to domain model.
- * Separates data layer (DTOs) from domain layer (models).
- */
 fun VerifyForgotPasswordOtpResponse.toDomain(): VerifyForgotPasswordOtpData = VerifyForgotPasswordOtpData(
     message = message,
     success = success

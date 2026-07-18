@@ -7,4 +7,5 @@ data class Media(
     val name: String,
     val size: Long,
     val mimeType: String,
+    val duration: Long = 0,
 )

@@ -2,7 +2,6 @@ package com.example.vidplay.presentation.state
 
 import com.example.vidplay.domain.model.MyStream
 
-/** UI state for the "My Streams" history tab. */
 sealed class MyStreamUiState {
     object Loading : MyStreamUiState()
     data class Success(val streams: List<MyStream>) : MyStreamUiState()

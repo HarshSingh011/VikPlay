@@ -28,10 +28,6 @@ data class UserDto(
     val createdAt: String
 )
 
-/**
- * Extension function to convert DTO to domain model.
- * Separates data layer (DTOs) from domain layer (models).
- */
 fun LoginResponse.toDomain(): LoginData = LoginData(
     accessToken = accessToken,
     tokenType = tokenType,

@@ -26,13 +26,6 @@ import com.example.vidplay.util.Resource
 import com.google.gson.Gson
 import javax.inject.Inject
 
-/**
- * Concrete implementation of [AuthRepository].
- * Lives in the data layer — the domain layer only ever sees the interface.
- *
- * All network calls are wrapped in try/catch so the ViewModel always
- * receives a typed [Resource] and never an unhandled exception.
- */
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: AuthApiService
 ) : AuthRepository {
@@ -75,8 +68,8 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    // Helpers
-    // ---------------------------------------------------------------------------
+    
+    
 
     private suspend fun safeLoginApiCall(
         call: suspend () -> retrofit2.Response<LoginResponse>
@@ -88,7 +81,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (body != null) Resource.Success(body.toDomain())
                 else Resource.Error("Empty response from server")
             } else {
-                // Extract error detail from API response
+                
                 val errorMessage = try {
                     val errorBody = response.errorBody()?.string()
                     if (!errorBody.isNullOrEmpty()) {
@@ -117,7 +110,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (body != null) Resource.Success(body.toDomain())
                 else Resource.Error("Empty response from server")
             } else {
-                // Extract error detail from API response
+                
                 val errorMessage = try {
                     val errorBody = response.errorBody()?.string()
                     if (!errorBody.isNullOrEmpty()) {
@@ -146,7 +139,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (body != null) Resource.Success(body.toDomain())
                 else Resource.Error("Empty response from server")
             } else {
-                // Extract error detail from API response
+                
                 val errorMessage = try {
                     val errorBody = response.errorBody()?.string()
                     if (!errorBody.isNullOrEmpty()) {
@@ -175,7 +168,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (body != null) Resource.Success(body.toDomain())
                 else Resource.Error("Empty response from server")
             } else {
-                // Extract error detail from API response
+                
                 val errorMessage = try {
                     val errorBody = response.errorBody()?.string()
                     if (!errorBody.isNullOrEmpty()) {
@@ -204,7 +197,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (body != null) Resource.Success(body.toDomain())
                 else Resource.Error("Empty response from server")
             } else {
-                // Extract error detail from API response
+                
                 val errorMessage = try {
                     val errorBody = response.errorBody()?.string()
                     if (!errorBody.isNullOrEmpty()) {
@@ -233,7 +226,7 @@ class AuthRepositoryImpl @Inject constructor(
                 if (body != null) Resource.Success(body.toDomain())
                 else Resource.Error("Empty response from server")
             } else {
-                // Extract error detail from API response
+                
                 val errorMessage = try {
                     val errorBody = response.errorBody()?.string()
                     if (!errorBody.isNullOrEmpty()) {

@@ -13,34 +13,24 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/**
- * Retrofit service interface for stream-related endpoints.
- * All methods are suspend functions so they integrate with Kotlin coroutines.
- */
 interface StreamApiService {
 
-    /**
-     * GET api/streaming/streams/live
-     * Returns a list of all currently live streams.
-     */
+    
+
     @GET("api/streaming/streams/live")
     suspend fun getAllStreams(
         @Header("Authorization") token: String
     ): Response<List<StreamDto>>
 
-    /**
-     * GET api/streaming/streams/history/me
-     * Returns the authenticated user's personal stream history.
-     */
+    
+
     @GET("api/streaming/streams/history/me")
     suspend fun getMyStreams(
         @Header("Authorization") token: String
     ): Response<List<MyStreamDto>>
 
-    /**
-     * GET api/streaming/streams/search?q=...&live_only=true
-     * Search streams by title/keyword.
-     */
+    
+
     @GET("api/streaming/streams/search")
     suspend fun searchStreams(
         @Header("Authorization") token: String,
@@ -48,20 +38,16 @@ interface StreamApiService {
         @Query("live_only") liveOnly: Boolean = true
     ): Response<List<SearchStreamDto>>
 
-    /**
-     * POST api/streaming/streams/start
-     * Creates and starts a new live stream.
-     */
+    
+
     @POST("api/streaming/streams/start")
     suspend fun startStream(
         @Header("Authorization") token: String,
         @Body body: StartStreamRequest
     ): Response<ActiveStreamDto>
 
-    /**
-     * POST api/streaming/streams/end/{stream_code}
-     * Ends an active live stream.
-     */
+    
+
     @POST("api/streaming/streams/end/{stream_code}")
     suspend fun endStream(
         @Header("Authorization") token: String,

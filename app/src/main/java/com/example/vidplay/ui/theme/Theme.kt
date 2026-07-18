@@ -2,66 +2,38 @@ package com.example.vidplay.ui.theme
 
 import android.app.Activity
 import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+private val AppDarkColorScheme = darkColorScheme(
+    primary = Color(0xFF4F8CFF),
     onPrimary = Color.White,
+    primaryContainer = Color(0xFF123A7A),
+    onPrimaryContainer = Color.White,
+    secondary = Color(0xFF6EA8FF),
     onSecondary = Color.White,
+    tertiary = Color(0xFF1D4ED8),
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
-)
-
-// Discord-like dark color scheme for auth screens
-private val DiscordColorScheme = darkColorScheme(
-    primary = DiscordBlueDark,
-    onPrimary = Color.White,
-    secondary = DiscordLightBlue,
-    onSecondary = Color.White,
-    tertiary = DiscordBlue,
-    onTertiary = Color.White,
-    background = DiscordBlack,
-    onBackground = DiscordTextPrimary,
-    surface = DiscordDarkGray,
-    onSurface = DiscordTextPrimary,
-    surfaceVariant = Color(0xFF383B43),
-    onSurfaceVariant = DiscordTextInput,
-    outline = DiscordBlue,
-    outlineVariant = DiscordTextSecondary,
-    error = Color(0xFFED4245),
+    background = Color(0xFF030712),
+    onBackground = Color(0xFFF8FAFC),
+    surface = Color(0xFF0B1220),
+    onSurface = Color(0xFFF8FAFC),
+    surfaceVariant = Color(0xFF111C32),
+    onSurfaceVariant = Color(0xFFCBD5E1),
+    outline = Color(0xFF31558A),
+    outlineVariant = Color(0xFF94A3B8),
+    error = Color(0xFFEF4444),
     onError = Color.White
 )
 
+private val DiscordColorScheme = AppDarkColorScheme
+
 @Composable
 fun VidPlayTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    // Always use Discord color scheme - ignore system settings
     MaterialTheme(
         colorScheme = DiscordColorScheme,
         typography = Typography,

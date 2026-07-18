@@ -187,7 +187,7 @@
                                 showControls.value = !showControls.value
                                 if (showControls.value) {
                                     coroutineScope.launch {
-                                        kotlinx.coroutines.delay(3000) // Wrap delay in coroutine
+                                        kotlinx.coroutines.delay(3000) 
                                         showControls.value = false
                                     }
                                 }

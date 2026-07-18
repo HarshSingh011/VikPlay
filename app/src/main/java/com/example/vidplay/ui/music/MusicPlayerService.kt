@@ -1,12 +1,10 @@
 package com.example.vidplay.ui.music
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
@@ -17,8 +15,8 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.ui.PlayerNotificationManager
-import com.example.vidplay.BuildConfig
-import com.example.vidplay.R
+import com.makeapp.vikplay.BuildConfig
+import com.makeapp.vikplay.R
 
 @UnstableApi
 class MusicPlayerService : MediaSessionService() {
@@ -31,8 +29,7 @@ class MusicPlayerService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-
-        // Initialize player with optimized audio configuration
+        
         val audioAttributes = AudioAttributes.Builder()
             .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
             .setUsage(C.USAGE_MEDIA)
@@ -43,7 +40,7 @@ class MusicPlayerService : MediaSessionService() {
             .setHandleAudioBecomingNoisy(true)
             .build()
 
-        // Create PendingIntent for notification click
+        
         val pendingIntent = packageManager.getLaunchIntentForPackage(packageName)?.let {
             PendingIntent.getActivity(
                 this, 0, it,
@@ -51,12 +48,12 @@ class MusicPlayerService : MediaSessionService() {
             )
         }
 
-        // Initialize MediaSession
+        
         mediaSession = MediaSession.Builder(this, player!!)
             .apply { if (pendingIntent != null) setSessionActivity(pendingIntent) }
             .build()
 
-        // Setup notification manager with proper control display
+        
         notificationManager = PlayerNotificationManager.Builder(
             this,
             NOTIFICATION_ID,
@@ -99,9 +96,9 @@ class MusicPlayerService : MediaSessionService() {
             val isPlaying = player?.isPlaying == true || player?.playWhenReady == true
             debugLog("Notification posted: ongoing=$ongoing, isPlaying=$isPlaying")
             
-            // Start foreground service only when actually playing
+            
             if (isPlaying && !isForeground) {
-                // Check notification permission for Android 13+
+                
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                     if (ActivityCompat.checkSelfPermission(
                             this@MusicPlayerService,
@@ -121,9 +118,9 @@ class MusicPlayerService : MediaSessionService() {
                     debugLog("Started foreground service")
                 }
             }
-            // Keep notification visible even when paused (don't stop foreground on pause)
+            
             else if (isPlaying && isForeground) {
-                // Update notification while already in foreground
+                
                 getSystemService(NotificationManager::class.java)?.notify(notificationId, notification)
             }
         }
@@ -150,8 +147,6 @@ class MusicPlayerService : MediaSessionService() {
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 debugLog("Playback changed: isPlaying=$isPlaying, playWhenReady=${player?.playWhenReady}")
-                // Don't stop foreground on pause - keep notification and service alive
-                // This allows resuming playback from the notification without service restart
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -191,7 +186,6 @@ class MusicPlayerService : MediaSessionService() {
 
     override fun onDestroy() {
         try {
-            // Stop foreground service if still running
             if (isForeground) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     stopForeground(STOP_FOREGROUND_REMOVE)

@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +23,14 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -56,16 +59,15 @@ private val categories = listOf(
     StorageCategory("Video",     Icons.Default.Videocam),
     StorageCategory("Music",     Icons.Default.MusicNote),
     StorageCategory("Downloads", Icons.Default.Download),
-    StorageCategory("Documents", Icons.Default.Folder)
+    StorageCategory("Documents", Icons.Default.Description)
 )
 
-/** Returns the permissions required for the given tab index. */
 private fun permissionsForTab(index: Int): Array<String> =
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
         when (index) {
             0    -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO)
             1    -> arrayOf(Manifest.permission.READ_MEDIA_AUDIO)
-            else -> arrayOf(Manifest.permission.READ_MEDIA_VIDEO, Manifest.permission.READ_MEDIA_AUDIO)
+            else -> emptyArray()
         }
     } else {
         arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -75,11 +77,11 @@ private fun permissionsForTab(index: Int): Array<String> =
 fun LocalStorageScreen(navController: NavController) {
     val context = LocalContext.current
     var selectedIndex by remember { mutableStateOf(0) }
-    // Incremented every time any tab is tapped, so LaunchedEffect always re-fires
-    // and re-requests permission if the user previously dismissed or ignored the dialog.
+    
+    
     var permissionTrigger by remember { mutableStateOf(0) }
 
-    // Incremented whenever at least one new permission is granted; children observe this to reload.
+    
     var reloadTrigger by remember { mutableStateOf(0) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -91,7 +93,7 @@ fun LocalStorageScreen(navController: NavController) {
         if (results.values.any { it }) reloadTrigger++
     }
 
-    // Re-check permission every time the selected tab changes OR the user taps a tab again.
+    
     LaunchedEffect(selectedIndex, permissionTrigger) {
         val needed = permissionsForTab(selectedIndex).filter {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
@@ -99,17 +101,26 @@ fun LocalStorageScreen(navController: NavController) {
         if (needed.isNotEmpty()) permissionLauncher.launch(needed.toTypedArray())
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
 
-        // ── Title ──
         Text(
             text = "Local Storage",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 12.dp)
+            modifier = Modifier.padding(start = 16.dp, top = 20.dp, bottom = 4.dp)
         )
 
-        // ── Category LazyRow ──
+        Text(
+            text = "Browse videos, music, downloads and documents",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 14.dp)
+        )
+
         LazyRow(
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -117,23 +128,34 @@ fun LocalStorageScreen(navController: NavController) {
         ) {
             itemsIndexed(categories) { index, category ->
                 val selected = index == selectedIndex
-                val bgColor = if (selected)
-                    Color(0xFF404EED)
-                else
-                    Color(0xFF2A2A3E)
-                val contentColor = if (selected)
-                    Color.White
-                else
-                    Color(0xFFB5BAC1)
+                val bgColor = if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer
+                } else {
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                }
+                val contentColor = if (selected) {
+                    MaterialTheme.colorScheme.onPrimaryContainer
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                }
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(bgColor)
+                        .border(
+                            width = 1.dp,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                            } else {
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                            },
+                            shape = RoundedCornerShape(12.dp)
+                        )
                         .clickable {
                             selectedIndex = index
-                            permissionTrigger++ // always re-ask if permission is still missing
+                            permissionTrigger++ 
                         }
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
@@ -156,30 +178,41 @@ fun LocalStorageScreen(navController: NavController) {
 
         Spacer(Modifier.height(12.dp))
 
-        // ── Content area ──
-        Box(modifier = Modifier
-            .fillMaxWidth()
-            .weight(1f)) {
-            when (selectedIndex) {
-                0 -> VideoGrid(navController = navController, reloadTrigger = reloadTrigger)
-                1 -> MusicListScreen(reloadTrigger = reloadTrigger)
-                3 -> DocumentListScreen()
-                else -> {
-                    val label = categories[selectedIndex].label
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = categories[selectedIndex].icon,
-                                contentDescription = label,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(Modifier.height(12.dp))
-                            Text(
-                                text = "$label coming soon",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(20.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                when (selectedIndex) {
+                    0 -> VideoGrid(navController = navController, reloadTrigger = reloadTrigger)
+                    1 -> MusicListScreen(reloadTrigger = reloadTrigger)
+                    2 -> DownloadListScreen(reloadTrigger = reloadTrigger)
+                    3 -> DocumentListScreen(reloadTrigger = reloadTrigger)
+                    else -> {
+                        val label = categories[selectedIndex].label
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Icon(
+                                    imageVector = categories[selectedIndex].icon,
+                                    contentDescription = label,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(Modifier.height(12.dp))
+                                Text(
+                                    text = "$label coming soon",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }

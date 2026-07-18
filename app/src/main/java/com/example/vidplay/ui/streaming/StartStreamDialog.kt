@@ -31,10 +31,6 @@ import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.graphics.Color
 import com.example.vidplay.ui.components.CustomOutlinedTextField
 
-/**
- * Dialog to collect details for starting a stream.
- * onSubmit returns title, description and optional thumbnail Uri string.
- */
 @Composable
 fun StartStreamDialog(
     onDismiss: () -> Unit,

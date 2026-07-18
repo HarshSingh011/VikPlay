@@ -4,7 +4,6 @@ import com.example.vidplay.domain.model.ActiveStream
 import com.example.vidplay.domain.repository.StreamRepository
 import com.example.vidplay.util.Resource
 
-/** Single-responsibility use case: start a new live stream. */
 class StartStreamUseCase(private val repository: StreamRepository) {
 
     suspend operator fun invoke(

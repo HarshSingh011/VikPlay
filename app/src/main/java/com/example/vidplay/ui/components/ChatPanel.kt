@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
@@ -42,29 +41,28 @@ fun ChatPanel(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(300.dp)
-            .background(Color(0xFF2a2a2a), RoundedCornerShape(8.dp))
-            .border(1.dp, Color(0xFF404EED), RoundedCornerShape(8.dp))
+            .background(Color(0xFF141A24))
+            .border(1.dp, Color(0xFF2A3344))
     ) {
-        // Header
+        
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFF1E1E2E))
-                .padding(12.dp),
+                .background(Color(0xFF1A2230))
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             contentAlignment = Alignment.CenterStart
         ) {
             Text(
-                text = "Live Chat",
-                color = Color(0xFF404EED),
+                text = "Live Chat (${messages.size})",
+                color = Color(0xFF79A8FF),
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp
             )
         }
 
-        Divider(color = Color(0xFF404EED).copy(alpha = 0.3f), thickness = 1.dp)
+        Divider(color = Color(0xFF2A3344), thickness = 1.dp)
 
-        // Messages
+        
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -73,14 +71,33 @@ fun ChatPanel(
             state = listState,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            if (messages.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 18.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No messages yet",
+                            color = Color(0xFF8E97A6),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
             items(messages) { msg ->
-                ChatMessageBubble(msg)
+                ChatMessageBubble(
+                    message = msg,
+                    currentUsername = username
+                )
             }
         }
 
-        Divider(color = Color(0xFF404EED).copy(alpha = 0.3f), thickness = 1.dp)
+        Divider(color = Color(0xFF2A3344), thickness = 1.dp)
 
-        // Input area
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,9 +111,9 @@ fun ChatPanel(
                 placeholder = { Text("Type message...", fontSize = 12.sp) },
                 modifier = Modifier
                     .weight(1f)
-                    .height(40.dp),
+                    .height(42.dp),
                 singleLine = true,
-                minHeight = 40f
+                minHeight = 42f
             )
             IconButton(
                 onClick = {
@@ -105,12 +122,12 @@ fun ChatPanel(
                         messageInput = ""
                     }
                 },
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(42.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Send,
                     contentDescription = "Send",
-                    tint = Color(0xFF404EED)
+                    tint = Color(0xFF79A8FF)
                 )
             }
         }
@@ -118,40 +135,50 @@ fun ChatPanel(
 }
 
 @Composable
-private fun ChatMessageBubble(message: ChatMessage) {
-    val isViewer = message.role == "viewer"
-    val backgroundColor = if (isViewer) Color(0xFF404EED).copy(alpha = 0.2f) else Color(0xFFB5BAC1).copy(alpha = 0.1f)
-    val textColor = if (isViewer) Color(0xFFB5BAC1) else Color.White
+private fun ChatMessageBubble(
+    message: ChatMessage,
+    currentUsername: String
+) {
+    val isOwnMessage = message.username.equals(currentUsername, ignoreCase = true)
+    val backgroundColor = if (isOwnMessage) Color(0xFF1F3A66) else Color(0xFF252E3D)
+    val titleColor = if (isOwnMessage) Color(0xFF9BC1FF) else Color(0xFFE4E8EF)
+    val bodyColor = Color(0xFFE4E8EF)
+    val timeColor = Color(0xFF8E97A6)
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .background(backgroundColor, RoundedCornerShape(8.dp))
-            .padding(8.dp),
-        horizontalAlignment = if (isViewer) Alignment.Start else Alignment.End
+            .fillMaxWidth(),
+        horizontalAlignment = if (isOwnMessage) Alignment.End else Alignment.Start
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .widthIn(max = 320.dp)
+                .background(backgroundColor, RoundedCornerShape(10.dp))
+                .padding(horizontal = 10.dp, vertical = 8.dp)
         ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (message.username.isBlank()) "User" else message.username,
+                    color = titleColor,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = formatTime(message.timestamp),
+                    color = timeColor,
+                    fontSize = 11.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = message.username,
-                color = if (isViewer) Color(0xFF404EED) else Color(0xFFB5BAC1),
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp
-            )
-            Text(
-                text = formatTime(message.timestamp),
-                color = textColor.copy(alpha = 0.6f),
-                fontSize = 11.sp
+                text = message.message,
+                color = bodyColor,
+                fontSize = 13.sp
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = message.message,
-            color = textColor,
-            fontSize = 13.sp
-        )
     }
 }
 

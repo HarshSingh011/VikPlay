@@ -20,17 +20,6 @@ import com.example.vidplay.ui.MainActivity
 import com.example.vidplay.util.PreferenceHelper
 import kotlinx.coroutines.runBlocking
 
-/**
- * Foreground service that keeps the WebRTC broadcaster alive when the user
- * minimises the app. The service is started by [LiveStreamingScreen] and
- * stopped when the broadcaster explicitly ends the stream.
- *
- * Lifecycle:
- *  • Started     → creates [WebRtcBroadcastManager], begins broadcasting
- *  • App in BG   → service stays alive (foreground notification keeps it running)
- *  • App killed  → [onTaskRemoved] calls POST /streaming/streams/end/{code}
- *  • Stopped     → [onDestroy] releases WebRTC resources
- */
 class StreamingForegroundService : Service() {
 
     companion object {
@@ -56,9 +45,9 @@ class StreamingForegroundService : Service() {
 
     private var streamCode: String? = null
 
-    // Keeps the CPU alive when screen is off so WebRTC/WebSocket keep running
+    
     private var wakeLock: PowerManager.WakeLock? = null
-    // Keeps Wi-Fi at full performance while streaming
+    
     private var wifiLock: WifiManager.WifiLock? = null
 
     override fun onCreate() {
@@ -73,7 +62,7 @@ class StreamingForegroundService : Service() {
         val title = intent.getStringExtra(EXTRA_TITLE)        ?: "Live Stream"
         streamCode = code
 
-        // Promote to foreground with persistent notification
+        
         val notif = buildNotification(title)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
@@ -85,7 +74,7 @@ class StreamingForegroundService : Service() {
             startForeground(NOTIF_ID, notif)
         }
 
-        // Idempotent: only create a new manager if one isn't already running
+        
         if (StreamingSession.manager == null) {
             val token = PreferenceHelper(this).token
             val mgr   = WebRtcBroadcastManager(this, code, key, token)
@@ -97,11 +86,8 @@ class StreamingForegroundService : Service() {
         return START_STICKY
     }
 
-    /**
-     * Called when the user swipes the app away from recents.
-     * We get a narrow window to clean up: call the end-stream API synchronously
-     * then release resources before Android kills the process.
-     */
+    
+
     override fun onTaskRemoved(rootIntent: Intent?) {
         Log.d(TAG, "onTaskRemoved — ending stream $streamCode")
         val code = streamCode
@@ -126,7 +112,7 @@ class StreamingForegroundService : Service() {
         super.onDestroy()
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    
 
     private fun releaseManager() {
         StreamingSession.manager?.release()
@@ -135,12 +121,12 @@ class StreamingForegroundService : Service() {
 
     @Suppress("DEPRECATION")
     private fun acquireWakeLocks() {
-        // PARTIAL_WAKE_LOCK keeps CPU running even when screen is off
+        
         wakeLock = (getSystemService(POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "VidPlay:StreamingWakeLock")
             .apply { acquire() }
 
-        // WIFI_MODE_FULL_HIGH_PERF prevents Wi-Fi from throttling during screen-off
+        
         wifiLock = (applicationContext.getSystemService(WIFI_SERVICE) as WifiManager)
             .createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "VidPlay:StreamingWifiLock")
             .apply { acquire() }
@@ -187,6 +173,6 @@ class StreamingForegroundService : Service() {
             .build()
     }
 
-    // This service is not designed for binding — return null
+    
     override fun onBind(intent: Intent?): IBinder? = null
 }

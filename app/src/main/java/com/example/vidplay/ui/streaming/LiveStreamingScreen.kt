@@ -38,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,9 +45,13 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.vidplay.data.model.ChatMessage
 import com.example.vidplay.data.webrtc.StreamingSession
 import com.example.vidplay.presentation.state.StartStreamUiState
 import com.example.vidplay.presentation.viewmodel.StreamViewModel
+import com.example.vidplay.ui.components.ChatPanel
+import com.example.vidplay.util.PreferenceHelper
+import kotlin.math.abs
 import org.webrtc.RendererCommon
 import org.webrtc.SurfaceViewRenderer
 
@@ -61,8 +64,10 @@ fun LiveStreamingScreen(
     val stream = (startStreamState as? StartStreamUiState.Success)?.stream
 
     val context = LocalContext.current
+    val username = remember { PreferenceHelper(context).username }
+    var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
 
-    // ── Permission state ──────────────────────────────────────────────────────
+    
     fun hasPermission(perm: String) =
         ContextCompat.checkSelfPermission(context, perm) == PackageManager.PERMISSION_GRANTED
 
@@ -77,16 +82,16 @@ fun LiveStreamingScreen(
         hasAudioPermission  = results[Manifest.permission.RECORD_AUDIO] == true
     }
 
-    // Request permissions on first entry
+    
     LaunchedEffect(Unit) {
         if (!hasCameraPermission || !hasAudioPermission) {
             permLauncher.launch(arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO))
         }
     }
 
-    // ── Start foreground service (idempotent) ─────────────────────────────────
-    // Once both stream info and permissions are available, start the service.
-    // The service creates WebRtcBroadcastManager and puts it in StreamingSession.
+    
+    
+    
     var serviceStarted by remember { mutableStateOf(false) }
     LaunchedEffect(stream?.streamCode, hasPermissions) {
         if (stream != null && hasPermissions && !serviceStarted) {
@@ -98,10 +103,33 @@ fun LiveStreamingScreen(
         }
     }
 
-    // ── WebRTC manager from the live service ──────────────────────────────────
+    
     val manager = StreamingSession.manager
 
-    // ── Prevent double end-stream calls when Stop button is used ─────────────
+    DisposableEffect(manager) {
+        manager?.setOnChatMessageListener { senderUsername, messageText, senderRole, timestamp ->
+            val incomingMessage = ChatMessage(
+                username = senderUsername,
+                message = messageText,
+                role = senderRole,
+                timestamp = timestamp
+            )
+            val isDuplicate = chatMessages.any {
+                it.role == incomingMessage.role &&
+                    it.message == incomingMessage.message &&
+                    abs(it.timestamp - incomingMessage.timestamp) <= 3000L
+            }
+            if (!isDuplicate) {
+                chatMessages = chatMessages + incomingMessage
+            }
+        }
+
+        onDispose {
+            manager?.setOnChatMessageListener(null)
+        }
+    }
+
+    
     var streamEndedExplicitly by remember { mutableStateOf(false) }
 
     fun stopStream() {
@@ -112,7 +140,7 @@ fun LiveStreamingScreen(
         viewModel.resetStartStreamState()
     }
 
-    // Called when back-navigation removes this screen from the backstack
+    
     DisposableEffect(Unit) {
         onDispose {
             if (!streamEndedExplicitly) {
@@ -123,10 +151,10 @@ fun LiveStreamingScreen(
         }
     }
 
-    // ── UI ────────────────────────────────────────────────────────────────────
+    
     Column(modifier = Modifier.fillMaxSize()) {
 
-        // TOP HALF: local camera preview via WebRTC SurfaceViewRenderer
+        
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,7 +200,7 @@ fun LiveStreamingScreen(
                         },
                         modifier = Modifier.fillMaxSize()
                     )
-                    // LIVE badge overlay
+                    
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
@@ -193,54 +221,60 @@ fun LiveStreamingScreen(
 
         Divider()
 
-        // BOTTOM HALF: stream info + stop button
+        
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(horizontal = 20.dp, vertical = 16.dp),
+                .padding(vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (stream != null) {
-                Text(stream.title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(stream.title, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
 
-                if (stream.description.isNotBlank()) {
-                    Text(stream.description, fontSize = 14.sp, color = Color(0xFF757575))
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Stream Code: ", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    Box(
-                        modifier = Modifier
-                            .background(Color(0xFFF5F5F5), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = stream.streamCode,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                    if (stream.description.isNotBlank()) {
+                        Text(stream.description, fontSize = 14.sp, color = Color(0xFFB5BAC1))
                     }
                 }
             }
 
-            Spacer(Modifier.weight(1f))
+            ChatPanel(
+                messages = chatMessages,
+                onSendMessage = { text ->
+                    val localMessage = ChatMessage(
+                        username = username.ifBlank { "Broadcaster" },
+                        message = text.trim(),
+                        role = "broadcaster",
+                        timestamp = System.currentTimeMillis()
+                    )
+                    chatMessages = chatMessages + localMessage
+                    manager?.sendChatMessage(text, username)
+                },
+                username = username,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
 
             Button(
                 onClick = {
                     stopStream()
                     navController.popBackStack()
                 },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(48.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFFE53935),
                     contentColor   = Color.White
-                )
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
                 Icon(Icons.Default.Stop, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Stop Streaming", fontWeight = FontWeight.Bold)
+                Text("Stop Streaming", fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }

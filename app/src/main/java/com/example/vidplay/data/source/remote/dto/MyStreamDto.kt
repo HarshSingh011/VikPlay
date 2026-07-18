@@ -3,7 +3,6 @@ package com.example.vidplay.data.source.remote.dto
 import com.google.gson.annotations.SerializedName
 import com.example.vidplay.domain.model.MyStream
 
-/** DTO for the /api/streaming/streams/history/me response items. */
 data class MyStreamDto(
     @SerializedName("id")               val id: Int,
     @SerializedName("stream_code")      val streamCode: String,

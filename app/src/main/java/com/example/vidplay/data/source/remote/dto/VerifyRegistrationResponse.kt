@@ -10,10 +10,6 @@ data class VerifyRegistrationResponse(
     val success: Boolean
 )
 
-/**
- * Extension function to convert DTO to domain model.
- * Separates data layer (DTOs) from domain layer (models).
- */
 fun VerifyRegistrationResponse.toDomain(): VerificationData = VerificationData(
     message = message,
     success = success

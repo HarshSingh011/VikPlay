@@ -55,25 +55,25 @@ fun RegisterScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Cleanup function to cancel scope when back is pressed or screen is destroyed
+    
     val onBackPressed = {
         if (isLoading) {
-            // Cancel all ongoing coroutines in this scope
+            
             scope.coroutineContext.cancelChildren()
             isLoading = false
         }
         navController.popBackStack()
     }
 
-    // Ensure cleanup when composable is disposed
+    
     DisposableEffect(Unit) {
         onDispose {
-            // Cancel all coroutines when screen is destroyed
+            
             scope.coroutineContext.cancelChildren()
         }
     }
 
-    // Regex patterns
+    
     val emailPattern = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
     val usernamePattern = Regex("^[a-zA-Z0-9_]{3,}$")
 
@@ -111,268 +111,285 @@ fun RegisterScreen(
             .background(MaterialTheme.colorScheme.background)
     ) {
         if (isLoading) {
-            // Show skeleton loading screen
+            
             RegisterScreenLoading()
         } else {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .imePadding()
                     .padding(24.dp)
-                    .verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Top
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = 16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(
-                        onClick = { onBackPressed() }
+                        onClick = { onBackPressed() },
+                        modifier = Modifier.size(40.dp)
                     ) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
 
-                Text(
-                    text = "Create Account",
-                    style = MaterialTheme.typography.headlineMedium,
+                Box(
                     modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 24.dp)
-                )
-
-            CustomOutlinedTextField(
-                value = username,
-                onValueChange = {
-                    username = it
-                    usernameError = ""
-                },
-                placeholder = { Text("Enter username") },
-                leadingIcon = {
-                    Icon(Icons.Default.Person, contentDescription = "Username")
-                },
-                modifier = Modifier.padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                singleLine = true,
-                isError = usernameError.isNotEmpty()
-            )
-
-            if (usernameError.isNotEmpty()) {
-                Text(
-                    text = usernameError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            }
-
-            CustomOutlinedTextField(
-                value = email,
-                onValueChange = {
-                    email = it
-                    emailError = ""
-                },
-                placeholder = { Text("Enter your email") },
-                leadingIcon = {
-                    Icon(Icons.Default.Email, contentDescription = "Email")
-                },
-                modifier = Modifier.padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                singleLine = true,
-                isError = emailError.isNotEmpty()
-            )
-
-            if (emailError.isNotEmpty()) {
-                Text(
-                    text = emailError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            }
-
-            CustomOutlinedTextField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    passwordError = ""
-                    if (confirmPassword.isNotEmpty()) {
-                        passwordsMatch = password == confirmPassword
-                    }
-                },
-                placeholder = { Text("Enter password") },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = "Password")
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { passwordVisible = !passwordVisible }
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Icon(
-                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility"
+                        Text(
+                            text = "Create Account",
+                            style = MaterialTheme.typography.headlineMedium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 24.dp)
                         )
-                    }
-                },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true,
-                isError = passwordError.isNotEmpty()
-            )
 
-            if (passwordError.isNotEmpty()) {
-                Text(
-                    text = passwordError,
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            } else if (password.isNotEmpty() && !PasswordValidator.isValidPassword(password)) {
-                Text(
-                    text = PasswordValidator.getPasswordErrorMessage(password),
-                    color = MaterialTheme.colorScheme.outline,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            }
-
-            CustomOutlinedTextField(
-                value = confirmPassword,
-                onValueChange = {
-                    confirmPassword = it
-                    passwordsMatch = password == it
-                },
-                placeholder = { Text("Confirm password") },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
-                },
-                trailingIcon = {
-                    IconButton(
-                        onClick = { confirmPasswordVisible = !confirmPasswordVisible }
-                    ) {
-                        Icon(
-                            imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = "Toggle password visibility"
+                        CustomOutlinedTextField(
+                            value = username,
+                            onValueChange = {
+                                username = it
+                                usernameError = ""
+                            },
+                            placeholder = { Text("Enter username") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Person, contentDescription = "Username")
+                            },
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                            singleLine = true,
+                            isError = usernameError.isNotEmpty()
                         )
-                    }
-                },
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = !passwordsMatch && confirmPassword.isNotEmpty(),
-                modifier = Modifier.padding(bottom = 8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                singleLine = true
-            )
 
-            if (!passwordsMatch && confirmPassword.isNotEmpty()) {
-                Text(
-                    "Passwords don't match",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier
-                        .align(Alignment.Start)
-                        .padding(bottom = 16.dp, start = 16.dp)
-                )
-            }
-
-            Button(
-                onClick = {
-                    usernameError = validateUsername(username)
-                    emailError = validateEmail(email)
-                    passwordError = validatePassword(password)
-                    errorMessage = ""
-
-                    if (usernameError.isEmpty() && emailError.isEmpty() &&
-                        passwordError.isEmpty() && passwordsMatch
-                    ) {
-                        isLoading = true
-                        scope.launch {
-                            // Call the domain layer use case via viewModel
-                            val result = viewModel.register(
-                                username = username,
-                                email = email,
-                                password = password
+                        if (usernameError.isNotEmpty()) {
+                            Text(
+                                text = usernameError,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 16.dp, start = 16.dp)
                             )
+                        }
 
-                            when (result) {
-                                is Resource.Success -> {
-                                    // Save username to preferences
-                                    PreferenceHelper(context).username = username
-                                    // Navigate to OTP screen on successful registration with flowType
-                                    navController.navigate(
-                                        Routes.OTP.replace(
-                                            "{email}",
-                                            email
-                                        ) + "?flowType=registration"
-                                    ) {
-                                        popUpTo(Routes.REGISTER) { inclusive = true }
+                        CustomOutlinedTextField(
+                            value = email,
+                            onValueChange = {
+                                email = it
+                                emailError = ""
+                            },
+                            placeholder = { Text("Enter your email") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Email, contentDescription = "Email")
+                            },
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            singleLine = true,
+                            isError = emailError.isNotEmpty()
+                        )
+
+                        if (emailError.isNotEmpty()) {
+                            Text(
+                                text = emailError,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 16.dp, start = 16.dp)
+                            )
+                        }
+
+                        CustomOutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                passwordError = ""
+                                if (confirmPassword.isNotEmpty()) {
+                                    passwordsMatch = password == confirmPassword
+                                }
+                            },
+                            placeholder = { Text("Enter password") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = "Password")
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { passwordVisible = !passwordVisible }
+                                ) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = "Toggle password visibility"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            isError = passwordError.isNotEmpty()
+                        )
+
+                        if (passwordError.isNotEmpty()) {
+                            Text(
+                                text = passwordError,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 16.dp, start = 16.dp)
+                            )
+                        } else if (password.isNotEmpty() && !PasswordValidator.isValidPassword(password)) {
+                            Text(
+                                text = PasswordValidator.getPasswordErrorMessage(password),
+                                color = MaterialTheme.colorScheme.outline,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 16.dp, start = 16.dp)
+                            )
+                        }
+
+                        CustomOutlinedTextField(
+                            value = confirmPassword,
+                            onValueChange = {
+                                confirmPassword = it
+                                passwordsMatch = password == it
+                            },
+                            placeholder = { Text("Confirm password") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Lock, contentDescription = "Confirm Password")
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { confirmPasswordVisible = !confirmPasswordVisible }
+                                ) {
+                                    Icon(
+                                        imageVector = if (confirmPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = "Toggle password visibility"
+                                    )
+                                }
+                            },
+                            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            isError = !passwordsMatch && confirmPassword.isNotEmpty(),
+                            modifier = Modifier.padding(bottom = 8.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true
+                        )
+
+                        if (!passwordsMatch && confirmPassword.isNotEmpty()) {
+                            Text(
+                                "Passwords don't match",
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier
+                                    .align(Alignment.Start)
+                                    .padding(bottom = 16.dp, start = 16.dp)
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                usernameError = validateUsername(username)
+                                emailError = validateEmail(email)
+                                passwordError = validatePassword(password)
+                                errorMessage = ""
+
+                                if (usernameError.isEmpty() && emailError.isEmpty() &&
+                                    passwordError.isEmpty() && passwordsMatch
+                                ) {
+                                    isLoading = true
+                                    scope.launch {
+                                        val result = viewModel.register(
+                                            username = username,
+                                            email = email,
+                                            password = password
+                                        )
+
+                                        when (result) {
+                                            is Resource.Success -> {
+                                                PreferenceHelper(context).username = username
+                                                navController.navigate(
+                                                    Routes.OTP.replace(
+                                                        "{email}",
+                                                        email
+                                                    ) + "?flowType=registration"
+                                                ) {
+                                                    popUpTo(Routes.REGISTER) { inclusive = true }
+                                                }
+                                            }
+
+                                            is Resource.Error -> {
+                                                errorMessage = result.message
+                                                isLoading = false
+                                                snackbarHostState.showSnackbar(errorMessage)
+                                            }
+
+                                            is Resource.Loading -> {
+                                            }
+                                        }
                                     }
                                 }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp)
+                                .padding(bottom = 16.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.White
+                            ),
+                            enabled = username.isNotEmpty() && email.isNotEmpty() &&
+                                password.isNotEmpty() && confirmPassword.isNotEmpty() &&
+                                passwordsMatch
+                        ) {
+                            Text("Create Account")
+                        }
 
-                                is Resource.Error -> {
-                                    errorMessage = result.message
-                                    isLoading = false
-                                    // Show error in snackbar
-                                    snackbarHostState.showSnackbar(errorMessage)
-                                }
-
-                                is Resource.Loading -> {
-                                    // Already handled by isLoading flag
-                                }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 12.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Already have an account?",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            TextButton(
+                                onClick = {
+                                    navController.navigate(Routes.LOGIN) {
+                                        popUpTo(Routes.REGISTER) { inclusive = true }
+                                    }
+                                },
+                                enabled = !isLoading,
+                                contentPadding = PaddingValues(0.dp),
+                                modifier = Modifier.defaultMinSize(minHeight = 0.dp)
+                            ) {
+                                Text(
+                                    "Login",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(bottom = 16.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White
-                ),
-                enabled = username.isNotEmpty() && email.isNotEmpty() &&
-                        password.isNotEmpty() && confirmPassword.isNotEmpty() &&
-                        passwordsMatch
-            ) {
-                Text("Create Account")
-            }
-
-            // Already have an account
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Already have an account?", style = MaterialTheme.typography.bodySmall)
-                TextButton(
-                    onClick = {
-                        navController.navigate(Routes.LOGIN) {
-                            popUpTo(Routes.REGISTER) { inclusive = true }
-                        }
-                    },
-                    enabled = !isLoading
-                ) {
-                    Text("Login", color = MaterialTheme.colorScheme.primary)
                 }
-            }
             }
         }
 
-        // Snackbar Host
+        
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)

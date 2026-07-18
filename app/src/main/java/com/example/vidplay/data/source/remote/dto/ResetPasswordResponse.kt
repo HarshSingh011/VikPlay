@@ -10,10 +10,6 @@ data class ResetPasswordResponse(
     val success: Boolean
 )
 
-/**
- * Extension function to convert DTO to domain model.
- * Separates data layer (DTOs) from domain layer (models).
- */
 fun ResetPasswordResponse.toDomain(): ResetPasswordData = ResetPasswordData(
     message = message,
     success = success
